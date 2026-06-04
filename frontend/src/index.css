@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500,400,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --bg: #F8FAFC;
+    --bg-dash: #F1F5F9;
+    --card: #FFFFFF;
+    --text: #0F172A;
+    --text-muted: #475569;
+    --brand: #004B87;
+    --brand-hover: #003A69;
+    --accent: #FF5722;
+    --accent-hover: #E64A19;
+    --pass: #10B981;
+    --fail: #EF4444;
+    --warn: #F59E0B;
+    --border: #E2E8F0;
+}
+
+body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+    font-family: 'Cabinet Grotesk', 'IBM Plex Sans', sans-serif;
+}
+
+.font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Blueprint grid background for hero */
+.bp-grid {
+    background-color: var(--bg);
+    background-image:
+        linear-gradient(rgba(0, 75, 135, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 75, 135, 0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.bp-grid-dense {
+    background-color: var(--bg-dash);
+    background-image:
+        linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+.label-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+@layer base {
+    :root {
+        --background: 210 40% 98%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 207 100% 26%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 14 100% 57%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 207 100% 26%;
+        --radius: 0rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+    h1, h2, h3, h4 {
+        font-family: 'Cabinet Grotesk', 'IBM Plex Sans', sans-serif;
+        letter-spacing: -0.02em;
+    }
+}
+
+/* Smooth entrance */
+.fade-up {
+    animation: fade-up 0.5s ease-out both;
+}
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}

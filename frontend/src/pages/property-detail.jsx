@@ -1,0 +1,251 @@
+import React, { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import AppShell from "../components/AppShell";
+import { apiClient, fileUrl } from "../lib/api";
+import { Eyebrow, StatusBadge } from "../components/Common";
+import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText } from "@phosphor-icons/react";
+import { toast } from "sonner";
+import PropertyIntelligence from "../components/PropertyIntelligence";
+
+const AREA_META = {
+  heating: { label: "Heating", icon: Thermometer },
+  insulation: { label: "Insulation", icon: ShieldCheck },
+  ventilation: { label: "Ventilation", icon: Wind },
+  moisture: { label: "Moisture / Drainage", icon: Drop },
+  draught_stopping: { label: "Draught Stopping", icon: Wind },
+};
+
+const STATUSES = ["compliant", "missing_evidence", "at_risk", "non_compliant"];
+
+export default function PropertyDetail() {
+  const { id } = useParams();
+  const [property, setProperty] = useState(null);
+  const [items, setItems] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [timeline, setTimeline] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [{ data: p }, { data: c }, { data: t }, { data: tl }] = await Promise.all([
+        apiClient.get(`/properties/${id}`),
+        apiClient.get(`/compliance/property/${id}`),
+        apiClient.get(`/tickets?property_id=${id}`),
+        apiClient.get(`/inspections/property/${id}/timeline`).catch(() => ({ data: { timeline: {} } })),
+      ]);
+      setProperty(p);
+      setItems(c);
+      setTickets(t);
+      setTimeline(tl.timeline || {});
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  const updateItem = async (item, updates) => {
+    try {
+      await apiClient.patch(`/compliance/${item.id}`, updates);
+      load();
+    } catch {
+      toast.error("Update failed");
+    }
+  };
+
+  const onUploadEvidence = async (item, files) => {
+    if (!files?.length) return;
+    try {
+      const paths = [];
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append("file", f);
+        const { data } = await apiClient.post("/uploads", fd);
+        paths.push(data.storage_path);
+      }
+      await updateItem(item, {
+        evidence_paths: [...(item.evidence_paths || []), ...paths],
+        last_checked: new Date().toISOString(),
+      });
+      toast.success("Evidence uploaded");
+    } catch {
+      toast.error("Upload failed");
+    }
+  };
+
+  const [showShare, setShowShare] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+
+  const createShare = async () => {
+    try {
+      const { data } = await apiClient.post(`/properties/${id}/share`);
+      setShareUrl(data.url);
+      setShowShare(true);
+      navigator.clipboard?.writeText(data.url).catch(() => {});
+      toast.success("Share link created & copied");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Failed");
+    }
+  };
+
+  if (loading) return <AppShell><div className="p-8 text-slate-500">Loading…</div></AppShell>;
+  if (!property) return <AppShell><div className="p-8">Property not found.</div></AppShell>;
+
+  const compliantCount = items.filter((i) => i.status === "compliant").length;
+
+  return (
+    <AppShell>
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <Link to="/properties" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#004B87] mb-4">
+          <ArrowLeft size={14} weight="bold" /> All properties
+        </Link>
+        <div className="flex items-start justify-between flex-wrap gap-4 mb-8">
+          <div>
+            <Eyebrow>Property file</Eyebrow>
+            <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-2" data-testid="property-detail-title">{property.address}</h1>
+            <div className="text-slate-600">{property.suburb}, {property.city} · {property.bedrooms} bed · {property.bathrooms} bath</div>
+          </div>
+          <div className="bg-white border border-slate-200 p-4 min-w-[180px]">
+            <div className="label-eyebrow">Risk score</div>
+            <div className={`font-display text-3xl font-bold mt-1 ${property.risk_score > 50 ? "text-[#FF5722]" : "text-[#004B87]"}`}>{property.risk_score}</div>
+            <div className="text-xs text-slate-500">Lower is better</div>
+            <button onClick={createShare} data-testid="property-share-btn" className="mt-3 w-full bg-[#004B87] hover:bg-[#003A69] text-white text-xs font-bold uppercase tracking-wider py-2">
+              Share with landlord
+            </button>
+            {showShare && shareUrl && (
+              <div className="mt-3 text-[11px] font-mono break-all bg-slate-50 border border-slate-200 p-2" data-testid="share-link-display">
+                {shareUrl}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Intelligence */}
+        <div className="mb-10">
+          <h2 className="font-display text-xl font-bold mb-4">Property intelligence</h2>
+          <PropertyIntelligence propertyId={id} />
+        </div>
+
+        {/* Compliance */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-bold">Healthy Homes compliance</h2>
+            <div className="text-sm text-slate-600 font-mono">{compliantCount}/{items.length} compliant</div>
+          </div>          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {items.map((it) => {
+              const meta = AREA_META[it.area] || { label: it.area, icon: ShieldCheck };
+              const Icon = meta.icon;
+              return (
+                <div key={it.id} className="bg-white border border-slate-200 p-4 flex flex-col" data-testid={`compliance-${it.area}`}>
+                  <div className="flex items-center justify-between">
+                    <Icon size={22} weight="duotone" className="text-[#004B87]" />
+                    <StatusBadge status={it.status} />
+                  </div>
+                  <div className="font-display font-bold mt-3">{meta.label}</div>
+                  <select
+                    value={it.status}
+                    onChange={(e) => updateItem(it, { status: e.target.value })}
+                    data-testid={`compliance-status-select-${it.area}`}
+                    className="mt-3 text-xs border border-slate-300 px-2 py-1.5"
+                  >
+                    {STATUSES.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+                  </select>
+                  <div className="mt-3">
+                    <div className="label-eyebrow mb-1">Evidence</div>
+                    {it.evidence_paths?.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {it.evidence_paths.map((p) => (
+                          <a key={p} href={fileUrl(p)} target="_blank" rel="noreferrer">
+                            <img src={fileUrl(p)} alt="" className="w-10 h-10 object-cover border border-slate-200" />
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-400">No evidence yet</div>
+                    )}
+                    <label className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#004B87] cursor-pointer hover:underline">
+                      <Upload size={12} weight="bold" /> Upload
+                      <input type="file" multiple accept="image/*,.pdf" onChange={(e) => onUploadEvidence(it, Array.from(e.target.files || []))} className="hidden" data-testid={`evidence-upload-${it.area}`} />
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Recent tickets */}
+        <div>
+          <h2 className="font-display text-xl font-bold mb-4">Recent tickets</h2>
+          {tickets.length === 0 ? (
+            <div className="bg-white border border-slate-200 p-6 text-sm text-slate-500">No tickets for this property.</div>
+          ) : (
+            <div className="bg-white border border-slate-200">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr className="text-left">
+                    <th className="px-5 py-2.5 label-eyebrow">Title</th>
+                    <th className="px-5 py-2.5 label-eyebrow">Urgency</th>
+                    <th className="px-5 py-2.5 label-eyebrow">Status</th>
+                    <th className="px-5 py-2.5 label-eyebrow">Reported</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.map((t) => (
+                    <tr key={t.id} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-5 py-3">
+                        <Link to={`/tickets/${t.id}`} className="font-semibold hover:text-[#004B87]">{t.title}</Link>
+                      </td>
+                      <td className="px-5 py-3"><StatusBadge status={t.urgency} /></td>
+                      <td className="px-5 py-3"><StatusBadge status={t.status} /></td>
+                      <td className="px-5 py-3 font-mono text-xs text-slate-500">{new Date(t.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Inspection photo timeline */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-bold flex items-center gap-2">
+              <ClipboardText size={20} weight="duotone" className="text-[#004B87]" />
+              Inspection photo timeline
+            </h2>
+            <Link to="/inspections" data-testid="property-inspections-link" className="text-xs font-bold uppercase tracking-wider text-[#004B87] hover:underline">
+              New inspection
+            </Link>
+          </div>
+          {Object.keys(timeline).length === 0 ? (
+            <div className="bg-white border border-slate-200 p-6 text-sm text-slate-500">
+              No inspection photos yet. Start an inspection to begin building the timeline.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(timeline).map(([roomName, photos]) => (
+                <div key={roomName} className="bg-white border border-slate-200 p-4" data-testid={`timeline-room-${roomName.replace(/\s+/g, "-").toLowerCase()}`}>
+                  <div className="font-display font-bold mb-3">{roomName}</div>
+                  <div className="flex gap-3 overflow-x-auto">
+                    {photos.map((ph, i) => (
+                      <div key={i} className="flex-shrink-0 w-32">
+                        <a href={fileUrl(ph.path)} target="_blank" rel="noreferrer">
+                          <img src={fileUrl(ph.path)} alt="" className="w-32 h-32 object-cover border border-slate-200" />
+                        </a>
+                        <div className="font-mono text-[10px] text-slate-500 mt-1">
+                          {ph.at ? new Date(ph.at).toLocaleDateString() : "—"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
