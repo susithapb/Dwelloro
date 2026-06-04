@@ -8,7 +8,8 @@ Dwelloro is a Healthy Homes + rental maintenance intelligence SaaS for NZ. This 
 
 ## Architecture
 
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/82db843e-2aca-42b8-8796-51fbdc9eb58f" />
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/1efd8efc-1e26-4023-ba11-384b376805b4" />
+
 
 
 ---
