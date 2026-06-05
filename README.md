@@ -1,6 +1,6 @@
 # Dwelloro — Local Development Guide
 
-Dwelloro is a Healthy Homes + rental maintenance intelligence SaaS for NZ. This guide gets you running on localhost in either **(a) Docker mode** (one command) or **(b) manual mode** (run each service directly).
+Dwelloro is a Healthy Homes + rental maintenance intelligence SaaS. This guide gets you running on localhost in either **(a) Docker mode** (one command) or **(b) manual mode** (run each service directly).
 
 > **Architecture note:** Dwelloro runs on a **single Node.js backend** (Fastify + Mongoose + Anthropic SDK). A thin Python reverse proxy (`/app/backend/`) is retained **only** for the Emergent preview pod where supervisor expects uvicorn on port 8001. For local, Docker, and AWS deployments, you can ignore or delete the Python folder entirely.
 

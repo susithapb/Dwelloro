@@ -32,12 +32,12 @@ export default function Landing() {
       <section className="bp-grid">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20 md:py-32 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7">
-            <Eyebrow>NZ Rental Operations / Healthy Homes</Eyebrow>
+            <Eyebrow>MAINTENANCE • INSPECTIONS • COMPLIANCE • INTELLIGENCE</Eyebrow>
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.05] mt-4 text-[#0F172A]">
               Every repair, inspection &amp; compliance act <span className="text-[#004B87]">on the record</span>.
             </h1>
             <p className="mt-6 text-lg text-slate-600 max-w-2xl leading-relaxed">
-              Dwelloro gives property managers a complete operational record of every repair, inspection, contractor action, and Healthy Homes obligation.
+              Dwelloro gives property managers a complete operational record of repairs, inspections, contractor actions and compliance obligations.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link

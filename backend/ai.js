@@ -13,18 +13,18 @@ const hasRealKey = () =>
 
 // ---------- Prompts ----------
 const ISSUE_SYSTEM =
-  'You are an expert NZ rental property maintenance triage assistant. ' +
+  'You are an expert New Zealand rental property maintenance triage assistant. ' +
   'Analyze maintenance issues reported by tenants and respond with strict JSON ONLY. ' +
-  'You must determine: category, urgency, NZ Healthy Homes relevance, suggested contractor type, ' +
+  'You must determine: category, urgency, New Zealand Healthy Homes relevance, suggested contractor type, ' +
   'a concise summary, and any safety/health risks. Be precise, factual, evidence-driven.';
 
 const BRIEF_SYSTEM =
-  'You are a maintenance coordinator drafting a clear, professional brief for a NZ tradesperson. ' +
+  'You are a maintenance coordinator drafting a clear, professional brief for a New Zealand tradesperson. ' +
   'Output: a 4-6 sentence brief covering the issue, suspected cause, access notes, safety considerations, ' +
   'and what to bring. No greetings, no signoff.';
 
 const INSPECTION_SYSTEM =
-  'You are an experienced NZ rental property inspector. Given a room-by-room inspection ' +
+  'You are an experienced New Zealand rental property inspector. Given a room-by-room inspection ' +
   'with checklist statuses (ok/minor/major/na) and notes, write a concise 4-7 sentence ' +
   'inspection summary covering: overall property condition, key issues found (with rooms), ' +
   'Healthy Homes concerns, deterioration trends vs prior inspections if any, and recommended ' +

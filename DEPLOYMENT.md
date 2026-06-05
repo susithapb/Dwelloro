@@ -46,7 +46,7 @@
 | Item | Provider | Cost |
 |---|---|---|
 | VPS (4 GB / 2 vCPU / 80 GB SSD) | Hetzner CCX13 | **$15** |
-| Domain (.co.nz) | Any registrar | $2 (amortised) |
+| Domain | Any registrar | $2 (amortised) |
 | TLS cert | Let's Encrypt | $0 |
 | Email | Resend (free tier, 3k/mo) | $0 |
 | AI (Anthropic) | Pay-per-use, ~$5 at 1k tickets/mo | usage |
@@ -89,7 +89,7 @@
 3. **Railway**: connect backend-node repo → Railway autodetects Node, runs `node server.js`, exposes a public URL
 4. **MongoDB Atlas**: create M0 cluster in `ap-southeast-2` (Sydney) → paste connection string into Railway env vars
 5. **Anthropic + Resend keys**: add to Railway env vars
-6. **Custom domain**: Vercel → add `app.dwelloro.co.nz`; Railway → add `api.dwelloro.co.nz`
+6. **Custom domain**: Vercel → add `app.dwelloro.app`; Railway → add `api.dwelloro.app`
 
 ### Cost (monthly NZD)
 | Item | Provider | Cost |
@@ -99,7 +99,7 @@
 | MongoDB Atlas M0 | Free tier (512 MB) | $0 — upgrade to M10 (~**$95**) at ~5+ customers |
 | Email | Resend (free 3k/mo) | $0 |
 | AI (Anthropic) | Pay-per-use | usage |
-| Domain | .co.nz | $2 |
+| Domain | .app | $2 |
 | **Subtotal infrastructure (MVP, free tiers)** | | **~$15/mo** |
 | **Subtotal infrastructure (5+ customers, paid tiers)** | | **~$130/mo** |
 
@@ -146,7 +146,7 @@
 2. Create App Runner service from ECR image
 3. Build React → `aws s3 sync build/ s3://dwelloro-frontend`
 4. CloudFront distribution → S3 bucket as origin, with ACM cert
-5. Route 53 records: `app.dwelloro.co.nz` → CloudFront, `api.dwelloro.co.nz` → App Runner
+5. Route 53 records: `app.dwelloro.app` → CloudFront, `api.dwelloro.app` → App Runner
 6. MongoDB Atlas M10 + VPC peering to App Runner's network
 7. Store secrets in AWS Secrets Manager, reference from App Runner config
 
@@ -161,7 +161,7 @@
 | Route 53 hosted zone | AWS | **$1** |
 | Email | Resend Pro (50k emails) | **$33** |
 | AI (Anthropic) | Pay-per-use | usage |
-| Domain | .co.nz | $2 |
+| Domain | .app | $2 |
 | **Subtotal infrastructure** | | **~$200/mo** |
 
 ### Pros
@@ -236,7 +236,7 @@ See `/app/MIGRATION.md` Phase 3 Option A for the full task definition + step-by-
 | WAF (optional, recommended) | AWS | **$15** |
 | Email | Resend Pro / SES | **$33** |
 | AI (Anthropic) | Pay-per-use | usage |
-| Domain | .co.nz | $2 |
+| Domain | .app | $2 |
 | **Subtotal at M10** | | **~$415/mo** |
 | **Subtotal at M20 (50+ customers)** | | **~$565/mo** |
 
@@ -280,7 +280,7 @@ Roughly **50 MB per active property per year** (compliance photos + ticket photo
 | Cloudflare R2 | NZD ~$0.025 (no egress) |
 
 ### Domain
-- **.co.nz**: NZD ~$25/year ($2/mo)
+- **.app**: NZD ~$25/year ($2/mo)
 - **.com**: NZD ~$20/year
 
 ## Recommended phased rollout
@@ -349,7 +349,7 @@ Dwelloro's codebase is **provider-agnostic** — switching between Option 2 / 3 
 ## Next decisions you need to make
 
 1. **Which option do you want to start with?** (1, 2, 3, or 4)
-2. **Domain name** — do you have one already, or need help registering `dwelloro.co.nz` / `.com`?
+2. **Domain name** — do you have one already, or need help registering `dwelloro.app` / `.com`?
 3. **AWS account** — already set up, or starting fresh?
 4. **MongoDB Atlas account** — created, or need help?
 5. **Anthropic key** — purchased, or planning to wait until launch?

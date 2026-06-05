@@ -191,7 +191,7 @@ Minimal task definition (`task-def.json`):
     "environment": [
       { "name": "DB_NAME", "value": "dwelloro_prod" },
       { "name": "NODE_PORT", "value": "8002" },
-      { "name": "APP_PUBLIC_URL", "value": "https://app.dwelloro.co.nz" },
+      { "name": "APP_PUBLIC_URL", "value": "https://app.dwelloro.app" },
       { "name": "ANTHROPIC_MODEL", "value": "claude-sonnet-4-5-20250929" }
     ],
     "secrets": [
@@ -216,10 +216,10 @@ Register: `aws ecs register-task-definition --cli-input-json file://task-def.jso
 
 #### ☐ 3.A.5 Wire up the rest
 - [ ] **Application Load Balancer** in front of the Node service (terminates TLS via ACM cert)
-- [ ] **Route 53** record `api.dwelloro.co.nz` → ALB
+- [ ] **Route 53** record `api.dwelloro.app` → ALB
 - [ ] **CloudFront + S3** for the frontend (push `frontend/build` to S3, fronted by CloudFront)
-- [ ] **Route 53** record `app.dwelloro.co.nz` → CloudFront
-- [ ] Set `REACT_APP_BACKEND_URL=https://api.dwelloro.co.nz` in your frontend build env before `yarn build`
+- [ ] **Route 53** record `app.dwelloro.app` → CloudFront
+- [ ] Set `REACT_APP_BACKEND_URL=https://api.dwelloro.app` in your frontend build env before `yarn build`
 
 #### ☐ 3.A.6 Lock down
 - [ ] Atlas Network Access → remove `0.0.0.0/0`, add your VPC's NAT gateway IP (or set up VPC peering)
