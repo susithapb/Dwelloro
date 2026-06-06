@@ -15,9 +15,11 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
+    "fastify-raw-body": "4",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "resend": "^6.12.3",
+    "stripe": "^22.2.0",
     "uuid": "^9.0.1"
   }
 }

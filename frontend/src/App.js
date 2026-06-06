@@ -19,6 +19,10 @@ import InspectionDetail from "@/pages/inspection-detail";
 import Contractors from "@/pages/contractors";
 import PropertyShareReport from "@/pages/property-share-report";
 import PortfolioTrends from "@/pages/portfolio-trends";
+import Pricing from "@/pages/pricing";
+import BillingSuccess from "@/pages/billing-success";
+import Billing from "@/pages/billing";
+import AdminBilling from "@/pages/admin-billing";
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -33,6 +37,8 @@ function App() {
         <Toaster position="top-right" richColors />
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
@@ -46,6 +52,8 @@ function App() {
           <Route path="/inspections/:id" element={<Private><InspectionDetail /></Private>} />
           <Route path="/contractors" element={<Private><Contractors /></Private>} />
           <Route path="/portfolio/trends" element={<Private><PortfolioTrends /></Private>} />
+          <Route path="/billing" element={<Private><Billing /></Private>} />
+          <Route path="/admin/billing" element={<Private><AdminBilling /></Private>} />
           <Route path="/share/property/:id" element={<PropertyShareReport />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -11,9 +11,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           <Brand />
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="#features" className="hover:text-[#004B87]">Features</a>
+            <a href="#features" className="hover:text-[#004B87]">Modules</a>
             <a href="#compliance" className="hover:text-[#004B87]">Healthy Homes</a>
-            <a href="#workflow" className="hover:text-[#004B87]">Maintenance</a>
+            <a href="#workflow" className="hover:text-[#004B87]">Workflow</a>
+            <Link to="/pricing" data-testid="nav-pricing-link" className="hover:text-[#004B87]">Pricing</Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link to="/login" data-testid="nav-login-btn" className="text-sm font-semibold hover:text-[#004B87]">Sign in</Link>

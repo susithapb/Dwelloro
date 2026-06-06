@@ -5,6 +5,7 @@ import { Eyebrow } from "../components/Common";
 import { Link } from "react-router-dom";
 import { Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import UpgradeModal from "../components/UpgradeModal";
 
 export default function Properties() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function Properties() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: 2, bathrooms: 1, notes: "" });
+  const [upgrade, setUpgrade] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -37,7 +39,13 @@ export default function Properties() {
       setForm({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: 2, bathrooms: 1, notes: "" });
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Failed");
+      const data = err?.response?.data;
+      if (data?.detail === "plan_limit_reached") {
+        const suggested = data.plan_tier === "free" ? "starter" : data.plan_tier === "starter" ? "pro" : "enterprise";
+        setUpgrade({ ...data, suggestedTier: suggested });
+        return;
+      }
+      toast.error(data?.detail || "Failed");
     }
   };
 
@@ -194,6 +202,15 @@ export default function Properties() {
           </div>
         )}
       </div>
+      <UpgradeModal
+        open={!!upgrade}
+        onClose={() => setUpgrade(null)}
+        planTier={upgrade?.plan_tier}
+        limit={upgrade?.limit}
+        used={upgrade?.used}
+        message={upgrade?.message}
+        suggestedTier={upgrade?.suggestedTier}
+      />
     </AppShell>
   );
 }

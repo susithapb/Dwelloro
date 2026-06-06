@@ -1,8 +1,15 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users } from "@phosphor-icons/react";
+import { NavLink, useNavigate, Link } from "react-router-dom";
+import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown } from "@phosphor-icons/react";
 import { Brand } from "./Common";
 import { useAuth } from "../lib/api";
+
+const PLAN_BADGE = {
+  free: { label: "Free", cls: "bg-slate-100 text-slate-600" },
+  starter: { label: "Starter", cls: "bg-blue-100 text-[#004B87]" },
+  pro: { label: "Pro", cls: "bg-orange-100 text-[#FF5722]" },
+  enterprise: { label: "Enterprise", cls: "bg-slate-900 text-white" },
+};
 
 const linksByRole = {
   property_manager: [
@@ -87,6 +94,37 @@ export default function AppShell({ children }) {
               </div>
             </div>
           </div>
+
+          {/* Plan tile */}
+          {(() => {
+            const tier = user?.plan_tier || "free";
+            const meta = PLAN_BADGE[tier] || PLAN_BADGE.free;
+            return (
+              <Link
+                to="/billing"
+                data-testid="sidebar-billing-link"
+                className="block border border-slate-200 hover:border-[#004B87] p-2.5 mb-2 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500">Plan</div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-wider ${meta.cls}`}>{meta.label}</span>
+                </div>
+                {tier !== "enterprise" && (
+                  <div className="text-[11px] text-slate-600 mt-1 inline-flex items-center gap-1 font-semibold hover:text-[#004B87]">
+                    <Sparkle size={10} weight="fill" className="text-[#FF5722]" />
+                    {tier === "free" || tier === "starter" ? "Upgrade →" : "Manage plan →"}
+                  </div>
+                )}
+              </Link>
+            );
+          })()}
+
+          {/* Admin entry — visible only when an admin endpoint is reachable.
+              Backed by ADMIN_EMAILS env var on the server; non-admins get 403 and we hide the link. */}
+          {user?.email && (
+            <AdminEntry />
+          )}
+
           <button
             onClick={onLogout}
             data-testid="sidebar-logout-btn"
@@ -99,5 +137,32 @@ export default function AppShell({ children }) {
 
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
+  );
+}
+
+// Probes /admin/metrics. If 200, renders the admin link. Silently hidden for non-admins.
+function AdminEntry() {
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  React.useEffect(() => {
+    import("../lib/api").then(({ apiClient }) => {
+      apiClient.get("/admin/metrics", { validateStatus: () => true })
+        .then(r => setIsAdmin(r.status === 200));
+    });
+  }, []);
+  if (!isAdmin) return null;
+  return (
+    <Link
+      to="/admin/billing"
+      data-testid="sidebar-admin-link"
+      className="block border border-slate-200 hover:border-[#FF5722] p-2.5 mb-3 transition-colors"
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-wider text-slate-500">Admin</div>
+        <Crown size={12} weight="bold" className="text-[#FF5722]" />
+      </div>
+      <div className="text-[11px] text-slate-600 mt-1 font-semibold hover:text-[#FF5722]">
+        Billing operations →
+      </div>
+    </Link>
   );
 }

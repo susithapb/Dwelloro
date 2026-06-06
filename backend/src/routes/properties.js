@@ -29,14 +29,27 @@ export default async function propertyRoutes(app) {
     return items.map(strip);
   });
 
-  app.post('/', { preHandler: requireRoles('property_manager') }, async (req) => {
-    const body = req.body || {};
-    const property = await Property.create({ ...body, manager_id: req.user.sub });
-    for (const area of COMPLIANCE_AREAS) {
-      await Compliance.create({ property_id: property.id, area });
+  app.post('/', { preHandler: requireRoles('property_manager') }, async (req, reply) => {
+  const u = await User.findOne({ id: req.user.sub });
+  const tier = u?.plan_tier || 'free';
+  const limit = planLimitFor(tier);
+  if (limit !== Infinity) {
+    const count = await Property.countDocuments({ manager_id: req.user.sub });
+    if (count >= limit) {
+      return reply.code(403).send({
+        detail: 'plan_limit_reached',
+        plan_tier: tier,
+        limit,
+        used: count,
+        message: `Your ${tier} plan is limited to ${limit} ${limit === 1 ? 'property' : 'properties'}. Upgrade to add more.`,
+      });
     }
-    return strip(property);
-  });
+  }
+  const b = req.body || {};
+  const p = await Property.create({ ...b, manager_id: req.user.sub });
+  for (const area of COMPLIANCE_AREAS) await Compliance.create({ property_id: p.id, area });
+  return strip(p);
+});
 
   app.get('/:id', { preHandler: authenticate }, async (req, reply) => {
     const property = await Property.findOne({ id: req.params.id });
@@ -49,7 +62,7 @@ export default async function propertyRoutes(app) {
 
   app.post(
     '/:id/share',
-    { preHandler: requireRoles('property_manager', 'landlord') },
+    { preHandler: requireRoles('property_manager','landlord') },
     async (req, reply) => {
       const property = await Property.findOne({ id: req.params.id });
       if (!property) return reply.code(404).send({ detail: 'Property not found' });
