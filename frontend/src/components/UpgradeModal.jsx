@@ -30,7 +30,7 @@ export default function UpgradeModal({ open, onClose, planTier = "free", limit, 
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-slate-500">Recommended</div>
-              <div className="font-display text-xl font-bold mt-0.5">PropIntel {TIER_NAMES[suggestedTier] || "Pro"}</div>
+              <div className="font-display text-xl font-bold mt-0.5">Dwelloro {TIER_NAMES[suggestedTier] || "Pro"}</div>
               <div className="text-xs text-slate-500 mt-1">
                 {suggestedTier === "starter" ? "Up to 25 properties · AI triage · Share links" :
                  suggestedTier === "pro" ? "Up to 100 properties · AI inspections · Portfolio trends" :

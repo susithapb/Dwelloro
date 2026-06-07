@@ -28,6 +28,11 @@ export async function seed() {
     ids[role] = user.id;
   }
 
+  await User.updateOne(
+    { email: 'manager@dwelloro.demo' },
+    { $set: { plan_tier: 'enterprise', plan_started_at: '2026-01-01T00:00:00.000Z' } }
+  );
+
   const existing = await Property.findOne({
     address: '12 Smith Street',
     manager_id: ids.property_manager,

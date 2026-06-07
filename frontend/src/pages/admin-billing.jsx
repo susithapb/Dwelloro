@@ -22,7 +22,7 @@ export default function AdminBilling() {
       .catch(e => setError(e?.response?.data?.detail || "Failed to load"));
   }, []);
 
-  if (error) return <AppShell><div className="p-8 text-slate-500" data-testid="admin-error">{error === "admin only" ? "This area is restricted to PropIntel staff." : error}</div></AppShell>;
+  if (error) return <AppShell><div className="p-8 text-slate-500" data-testid="admin-error">{error === "admin only" ? "This area is restricted to Dwelloro staff." : error}</div></AppShell>;
   if (!data) return <AppShell><div className="p-8 text-slate-500">Loading…</div></AppShell>;
 
   const tiers = ["free", "starter", "pro", "enterprise"];

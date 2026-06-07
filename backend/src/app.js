@@ -14,6 +14,7 @@ import notificationRoutes from './routes/notifications.js';
 import publicRoutes from './routes/public.js';
 import aiRoutes from './routes/ai.js';
 import billingRoutes  from './routes/billing.js';
+import adminRoutes from './routes/admin.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: false, bodyLimit: 20 * 1024 * 1024 });
@@ -34,7 +35,8 @@ export async function buildApp() {
   await app.register(intelligenceRoutes, { prefix: 'api/intelligence' });
   await app.register(notificationRoutes, { prefix: 'api/notifications' });
   await app.register(publicRoutes);
-  await app.register(billingRoutes)
+  await app.register(billingRoutes, { prefix: 'api/billing' })
+  await app.register(adminRoutes)
   await app.register(aiRoutes, { prefix: '/api/ai' });
 
   return app;

@@ -34,7 +34,7 @@ export default function Billing() {
   const handleCancel = async () => {
     if (!confirming) { setConfirming(true); return; }
     // Real cancellation goes through Stripe billing portal — placeholder for now.
-    toast("Cancellation isn't enabled in this preview. Email billing@propintel.co.nz to cancel.", { duration: 5000 });
+    toast("Cancellation isn't enabled in this preview. Email billing@dwelloro.app to cancel.", { duration: 5000 });
     setConfirming(false);
   };
 
@@ -44,7 +44,7 @@ export default function Billing() {
         <div className="mb-8">
           <Eyebrow>Billing</Eyebrow>
           <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-2">Plan & payments</h1>
-          <p className="text-slate-600 mt-1">Manage your PropIntel subscription and review billing history.</p>
+          <p className="text-slate-600 mt-1">Manage your Dwelloro subscription and review billing history.</p>
         </div>
 
         {/* Current plan */}
@@ -145,7 +145,7 @@ export default function Billing() {
         </div>
 
         <p className="text-xs text-slate-500 mt-6">
-          Need help with billing? Email <a href="mailto:billing@propintel.co.nz" className="text-[#004B87] hover:underline">billing@propintel.co.nz</a> — we respond within 1 business hour.
+          Need help with billing? Email <a href="mailto:billing@dwelloro.app" className="text-[#004B87] hover:underline">billing@dwelloro.app</a> — we respond within 1 business hour.
         </p>
       </div>
     </AppShell>

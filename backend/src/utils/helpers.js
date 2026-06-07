@@ -14,3 +14,8 @@ export const strip = (doc) => {
  * Current ISO timestamp string.
  */
 export const now = () => new Date().toISOString();
+
+const PLAN_LIMITS = { free: 3, starter: 25, pro: 100, enterprise: Infinity };
+export function planLimitFor(tier) {
+  return PLAN_LIMITS[tier] ?? PLAN_LIMITS.free;
+}

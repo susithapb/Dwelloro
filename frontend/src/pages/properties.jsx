@@ -12,7 +12,7 @@ export default function Properties() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
-  const [form, setForm] = useState({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: 2, bathrooms: 1, notes: "" });
+  const [form, setForm] = useState({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: "", bathrooms: "", notes: "" });
   const [upgrade, setUpgrade] = useState(null);
 
   const load = async () => {
@@ -36,9 +36,10 @@ export default function Properties() {
       await apiClient.post("/properties", form);
       toast.success("Property added");
       setShowNew(false);
-      setForm({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: 2, bathrooms: 1, notes: "" });
+      setForm({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: "", bathrooms: "", notes: "" });
       load();
     } catch (err) {
+      console.log(err)
       const data = err?.response?.data;
       if (data?.detail === "plan_limit_reached") {
         const suggested = data.plan_tier === "free" ? "starter" : data.plan_tier === "starter" ? "pro" : "enterprise";
