@@ -37,36 +37,35 @@ export default async function propertyRoutes(app) {
     "/",
     { preHandler: requireRoles("property_manager") },
     async (req, reply) => {
-      try {
-        const u = await User.findOne({ id: req.user.sub });
-        const tier = u?.plan_tier || "free";
-        const limit = planLimitFor(tier);
-        if (limit !== Infinity) {
-          const count = await Property.countDocuments({
-            manager_id: req.user.sub,
+      const u = await User.findOne({ id: req.user.sub });
+      const tier = u?.plan_tier || "free";
+      const limit = planLimitFor(tier);
+      if (limit !== Infinity) {
+        const count = await Property.countDocuments({
+          manager_id: req.user.sub,
+        });
+        if (count >= limit) {
+          return reply.code(403).send({
+            detail: "plan_limit_reached",
+            plan_tier: tier,
+            limit,
+            used: count,
+            message: `Your ${tier} plan is limited to ${limit} ${limit === 1 ? "property" : "properties"}. Upgrade to add more.`,
           });
-          if (count >= limit) {
-            return reply.code(403).send({
-              detail: "plan_limit_reached",
-              plan_tier: tier,
-              limit,
-              used: count,
-              message: `Your ${tier} plan is limited to ${limit} ${limit === 1 ? "property" : "properties"}. Upgrade to add more.`,
-            });
-          }
         }
-        const b = req.body || {};
-        const err = collect(
-          required(b.address, 'address'),
-          required(b.suburb, 'suburb'),
-          required(b.city, 'city'),
-        );
-        if (err) return reply.code(400).send({ detail: err });
-        const p = await Property.create({ ...b, manager_id: req.user.sub });
-        for (const area of COMPLIANCE_AREAS)
-          await Compliance.create({ property_id: p.id, area });
-        return strip(p);
-    },
+      }
+      const b = req.body || {};
+      const err = collect(
+        required(b.address, "address"),
+        required(b.suburb, "suburb"),
+        required(b.city, "city"),
+      );
+      if (err) return reply.code(400).send({ detail: err });
+      const p = await Property.create({ ...b, manager_id: req.user.sub });
+      for (const area of COMPLIANCE_AREAS)
+        await Compliance.create({ property_id: p.id, area });
+      return strip(p);
+    }
   );
 
   app.get("/:id", { preHandler: authenticate }, async (req, reply) => {
