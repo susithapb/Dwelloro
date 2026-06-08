@@ -85,6 +85,11 @@ export default function Login() {
               {submitting ? "Signing in…" : "Sign in"}
             </button>
             <div className="text-sm text-slate-500 text-center">
+              <Link to="/forgot-password" data-testid="login-forgot-link" className="text-slate-500 hover:text-[#004B87] hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <div className="text-sm text-slate-500 text-center">
               No account?{" "}
               <Link to="/register" data-testid="login-to-register-link" className="text-[#004B87] font-semibold hover:underline">
                 Create one

@@ -1,9 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { strip } from '../utils/helpers.js';
 import env from '../config/env.js';
+import { sendPasswordResetEmail } from '../services/notify.js';
 
 const sign = (user) =>
   jwt.sign({ sub: user.id, role: user.role }, env.JWT_SECRET, { expiresIn: '72h' });
@@ -40,5 +42,39 @@ export default async function authRoutes(app) {
     const user = await User.findOne({ id: req.user.sub });
     if (!user) return reply.code(404).send({ detail: 'User not found' });
     return strip(user);
+  });
+
+  app.post('/forgot-password', async (req, reply) => {
+    const { email } = req.body || {};
+    // Always return 200 — don't reveal whether the email exists
+    const user = await User.findOne({ email: (email || '').toLowerCase() });
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      user.reset_token = token;
+      user.reset_token_expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      await user.save();
+      const resetUrl = `${env.APP_PUBLIC_URL}/reset-password?token=${token}`;
+      await sendPasswordResetEmail(user, resetUrl);
+    }
+    return { detail: 'If that email is registered you will receive a reset link shortly.' };
+  });
+
+  app.post('/reset-password', async (req, reply) => {
+    const { token, password } = req.body || {};
+    if (!token || !password) {
+      return reply.code(400).send({ detail: 'Token and password are required' });
+    }
+    if (password.length < 8) {
+      return reply.code(400).send({ detail: 'Password must be at least 8 characters' });
+    }
+    const user = await User.findOne({ reset_token: token });
+    if (!user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+      return reply.code(400).send({ detail: 'Reset link is invalid or has expired' });
+    }
+    user.password_hash = bcrypt.hashSync(password, 10);
+    user.reset_token = undefined;
+    user.reset_token_expires = undefined;
+    await user.save();
+    return { detail: 'Password updated successfully' };
   });
 }

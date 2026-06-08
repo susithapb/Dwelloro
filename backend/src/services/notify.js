@@ -54,3 +54,38 @@ export async function notifyContractorAssigned(contractor, ticket, property) {
     return { error: e.message };
   }
 }
+
+export async function sendPasswordResetEmail(user, resetUrl) {
+  if (!resend) {
+    console.log('[notify] Resend key missing — skipping password reset email');
+    return { skipped: true };
+  }
+
+  const html = `
+    <table cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;max-width:560px;border:1px solid #e2e8f0">
+      <tr><td style="background:#004B87;color:#fff;padding:20px">
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.8">Dwelloro</div>
+        <h2 style="margin:6px 0 0">Password reset request</h2>
+      </td></tr>
+      <tr><td style="padding:20px;color:#0F172A">
+        <p style="margin:0 0 14px">Kia ora ${user.full_name || ''},</p>
+        <p style="margin:0 0 14px">We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong>1 hour</strong>.</p>
+        <a href="${resetUrl}" style="display:inline-block;background:#FF5722;color:#fff;padding:12px 20px;text-decoration:none;font-weight:600">Reset my password →</a>
+        <p style="margin:20px 0 0;font-size:13px;color:#64748b">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+      </td></tr>
+      <tr><td style="background:#F1F5F9;padding:14px;color:#64748b;font-size:12px">Dwelloro · Operational evidence for NZ rentals</td></tr>
+    </table>`;
+
+  try {
+    const r = await resend.emails.send({
+      from: env.SENDER_EMAIL,
+      to: [user.email],
+      subject: 'Reset your Dwelloro password',
+      html,
+    });
+    return { sent: true, id: r.data?.id };
+  } catch (e) {
+    console.error('[notify] Resend error', e.message);
+    return { error: e.message };
+  }
+}

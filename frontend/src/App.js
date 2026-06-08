@@ -25,6 +25,8 @@ import Billing from "@/pages/billing";
 import AdminBilling from "@/pages/admin-billing";
 import AdminUsers from "@/pages/admin-users";
 import AdminStaff from "@/pages/admin-staff";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -43,6 +45,8 @@ function App() {
           <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
           <Route path="/report" element={<Private><ReportIssue /></Private>} />
           <Route path="/tickets" element={<Private><Tickets /></Private>} />

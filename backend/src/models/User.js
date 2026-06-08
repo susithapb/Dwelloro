@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema(
     plan_started_at: String,
     stripe_customer_id: String,
     stripe_session_id: String,
+    reset_token: String,
+    reset_token_expires: String,
     created_at: { type: String, default: () => new Date().toISOString() },
   },
   { collection: 'users' },
