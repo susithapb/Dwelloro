@@ -5,7 +5,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireRoles } from '../middleware/requireRoles.js';
 import { recomputeRiskScore } from '../services/risk.js';
 import { generateContractorBrief } from '../services/ai.js';
-import { notifyContractorAssigned } from '../services/notify.js';
+import { notifyContractorAssigned, notifyTicketStatusUpdate } from '../services/notify.js';
 import { strip, now } from '../utils/helpers.js';
 import { collect, required } from '../utils/validate.js';
 
@@ -62,6 +62,7 @@ export default async function ticketRoutes(app) {
     if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
 
     const body = req.body || {};
+    const oldStatus = ticket.status;
     const event = { at: now(), by: req.user.sub, event: 'updated' };
     if (body.status) { ticket.status = body.status; event.status = body.status; }
     if (body.urgency) ticket.urgency = body.urgency;
@@ -75,6 +76,20 @@ export default async function ticketRoutes(app) {
     await ticket.save();
 
     recomputeRiskScore(ticket.property_id).catch(() => {});
+
+    if (body.status && body.status !== oldStatus && ['assigned', 'completed', 'closed'].includes(body.status)) {
+      const [reporter, property] = await Promise.all([
+        User.findOne({ id: ticket.reporter_id }),
+        Property.findOne({ id: ticket.property_id }),
+      ]);
+      notifyTicketStatusUpdate(
+        reporter ? strip(reporter) : null,
+        strip(ticket),
+        property ? strip(property) : null,
+        body.status,
+      ).catch((e) => console.error('[notify] status update:', e.message));
+    }
+
     return strip(ticket);
   });
 

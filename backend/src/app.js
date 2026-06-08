@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 
 import authRoutes from './routes/auth.js';
 import propertyRoutes from './routes/properties.js';
@@ -21,6 +22,7 @@ export async function buildApp() {
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(multipart, { limits: { fileSize: 15 * 1024 * 1024 } });
+  await app.register(rateLimit, { global: false });
 
   app.get('/', async () => ({ name: 'Dwelloro', status: 'ok', backend: 'node-fastify' }));
   app.get('/health', async () => ({ status: 'ok' }));

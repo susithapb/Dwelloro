@@ -12,7 +12,7 @@ const sign = (user) =>
   jwt.sign({ sub: user.id, role: user.role }, env.JWT_SECRET, { expiresIn: '72h' });
 
 export default async function authRoutes(app) {
-  app.post('/register', async (req, reply) => {
+  app.post('/register', { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (req, reply) => {
     const { email, password, full_name, role, phone } = req.body || {};
     const VALID_ROLES = ['property_manager', 'tenant', 'contractor', 'landlord', 'inspector'];
     const err = collect(
@@ -35,7 +35,7 @@ export default async function authRoutes(app) {
     return { access_token: sign(user), token_type: 'bearer', user: strip(user) };
   });
 
-  app.post('/login', async (req, reply) => {
+  app.post('/login', { config: { rateLimit: { max: 20, timeWindow: '15 minutes' } } }, async (req, reply) => {
     const { email, password } = req.body || {};
     const user = await User.findOne({ email: (email || '').toLowerCase() });
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
@@ -88,7 +88,7 @@ export default async function authRoutes(app) {
     return { detail: 'Password updated successfully' };
   });
 
-  app.post('/forgot-password', async (req, reply) => {
+  app.post('/forgot-password', { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, async (req, reply) => {
     const { email } = req.body || {};
     // Always return 200 — don't reveal whether the email exists
     const user = await User.findOne({ email: (email || '').toLowerCase() });

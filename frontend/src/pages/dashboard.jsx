@@ -3,7 +3,7 @@ import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow, StatTile, StatusBadge, SkeletonStatTile, SkeletonTable, Skeleton, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
-import { ArrowRight, Buildings, Wrench, ShieldCheck, Ticket } from "@phosphor-icons/react";
+import { ArrowRight, Buildings, Wrench, ShieldCheck, Ticket, ClipboardText } from "@phosphor-icons/react";
 import AlertsFeed from "../components/AlertsFeed";
 import PortfolioIntelligence from "../components/PortfolioIntelligence";
 
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [props, setProps] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,13 +20,18 @@ export default function Dashboard() {
     (async () => {
       setLoading(true);
       try {
-        const [pr, tk] = await Promise.all([
+        const requests = [
           apiClient.get("/properties").catch(() => ({ data: [] })),
           apiClient.get("/tickets").catch(() => ({ data: [] })),
-        ]);
+        ];
+        if (user.role === "inspector") {
+          requests.push(apiClient.get("/inspections").catch(() => ({ data: [] })));
+        }
+        const [pr, tk, ins] = await Promise.all(requests);
         if (cancelled) return;
         setProps(pr.data || []);
         setTickets(tk.data || []);
+        if (ins) setInspections(ins.data || []);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -36,7 +42,14 @@ export default function Dashboard() {
   const openCount = tickets.filter((t) => !["completed", "closed"].includes(t.status)).length;
   const criticalCount = tickets.filter((t) => t.urgency === "critical" || t.urgency === "high").length;
   const hhCount = tickets.filter((t) => t.ai_analysis?.healthy_homes_relevant).length;
+  const resolvedCount = tickets.filter((t) => ["completed", "closed"].includes(t.status)).length;
   const isOps = user?.role === "property_manager" || user?.role === "landlord";
+  const isInspector = user?.role === "inspector";
+  const isContractor = user?.role === "contractor";
+  const isTenant = user?.role === "tenant";
+  const scheduledInspections = inspections.filter((i) => i.status === "scheduled").length;
+  const inProgressInspections = inspections.filter((i) => i.status === "in_progress").length;
+  const completedInspections = inspections.filter((i) => i.status === "completed").length;
 
   return (
     <AppShell>
@@ -67,6 +80,27 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)
+          ) : isInspector ? (
+            <>
+              <StatTile label="Properties" value={props.length} sub="Visible to you" />
+              <StatTile label="Scheduled" value={scheduledInspections} sub="Upcoming" />
+              <StatTile label="In progress" value={inProgressInspections} sub="Active walkthroughs" accent={inProgressInspections > 0} />
+              <StatTile label="Completed" value={completedInspections} sub="Done" />
+            </>
+          ) : isTenant ? (
+            <>
+              <StatTile label="Open tickets" value={openCount} sub="Awaiting action" accent={openCount > 0} />
+              <StatTile label="Resolved" value={resolvedCount} sub="Completed / closed" />
+              <StatTile label="High urgency" value={criticalCount} sub="Critical + High" />
+              <StatTile label="Total" value={tickets.length} sub="All time" />
+            </>
+          ) : isContractor ? (
+            <>
+              <StatTile label="Active jobs" value={openCount} sub="Assigned to you" accent={openCount > 0} />
+              <StatTile label="Completed" value={resolvedCount} sub="Done" />
+              <StatTile label="High urgency" value={criticalCount} sub="Critical + High" />
+              <StatTile label="Total" value={tickets.length} sub="All time" />
+            </>
           ) : (
             <>
               <StatTile label="Properties" value={props.length} sub="Under management" />
@@ -83,6 +117,50 @@ export default function Dashboard() {
               <PortfolioIntelligence />
             </div>
             <AlertsFeed />
+          </div>
+        )}
+
+        {isInspector && (
+          <div className="bg-white border border-slate-200 mb-8">
+            <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ClipboardText size={18} weight="bold" className="text-[#004B87]" />
+                <h3 className="font-display font-bold">My inspections</h3>
+              </div>
+              <Link to="/inspections" className="text-xs font-semibold uppercase tracking-wider text-[#004B87] hover:underline">View all</Link>
+            </div>
+            {loading ? (
+              <div className="p-4"><SkeletonTable rows={3} cols={3} /></div>
+            ) : inspections.length === 0 ? (
+              <EmptyState icon={ClipboardText} title="No inspections yet" description="New inspections will appear here once assigned." action={<Link to="/inspections" className="inline-flex items-center gap-2 px-4 py-2 bg-[#004B87] text-white text-sm font-semibold hover:bg-[#003A69]">New inspection <ArrowRight size={13} weight="bold" /></Link>} />
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr className="text-left">
+                    <th className="px-5 py-2.5 label-eyebrow">Property</th>
+                    <th className="px-5 py-2.5 label-eyebrow">Status</th>
+                    <th className="px-5 py-2.5 label-eyebrow">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inspections.slice(0, 8).map((insp) => {
+                    const prop = props.find((p) => p.id === insp.property_id);
+                    return (
+                      <tr key={insp.id} className="border-t border-slate-100 hover:bg-slate-50">
+                        <td className="px-5 py-3">
+                          <Link to={`/inspections/${insp.id}`} className="font-semibold hover:text-[#004B87]">
+                            {prop ? prop.address : insp.property_id?.slice(0, 8)}
+                          </Link>
+                          {prop && <div className="text-xs text-slate-500">{prop.suburb}, {prop.city}</div>}
+                        </td>
+                        <td className="px-5 py-3"><StatusBadge status={insp.status} /></td>
+                        <td className="px-5 py-3 text-xs font-mono text-slate-500">{new Date(insp.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
@@ -161,8 +239,19 @@ export default function Dashboard() {
               ) : props.length === 0 ? (
                 <div className="p-6 text-center">
                   <Buildings size={28} weight="duotone" className="text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">No properties yet.</p>
-                  <Link to="/properties" className="mt-3 inline-block text-xs font-semibold text-[#004B87] hover:underline">Add a property →</Link>
+                  {isTenant ? (
+                    <>
+                      <p className="text-sm text-slate-500">No property linked yet.</p>
+                      <p className="text-xs text-slate-400 mt-1">Your property manager will link you to a property.</p>
+                    </>
+                  ) : isContractor ? (
+                    <p className="text-sm text-slate-500">No properties — your jobs are in the tickets list.</p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-500">No properties yet.</p>
+                      <Link to="/properties" className="mt-3 inline-block text-xs font-semibold text-[#004B87] hover:underline">Add a property →</Link>
+                    </>
+                  )}
                 </div>
               ) : (
                 <ul>

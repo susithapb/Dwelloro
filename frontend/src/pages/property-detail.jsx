@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
-import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash } from "@phosphor-icons/react";
+import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PropertyIntelligence from "../components/PropertyIntelligence";
 
@@ -31,6 +31,9 @@ export default function PropertyDetail() {
   const [savingTenant, setSavingTenant] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -59,8 +62,34 @@ export default function PropertyDetail() {
   }, [currentUser]);
 
   useEffect(() => {
-    if (property) setSelectedTenantId(property.tenant_id || "");
+    if (property) {
+      setSelectedTenantId(property.tenant_id || "");
+      setEditForm({
+        address: property.address || "",
+        suburb: property.suburb || "",
+        city: property.city || "",
+        postcode: property.postcode || "",
+        bedrooms: property.bedrooms ?? "",
+        bathrooms: property.bathrooms ?? "",
+        notes: property.notes || "",
+      });
+    }
   }, [property]);
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const { data } = await apiClient.patch(`/properties/${id}`, editForm);
+      setProperty(data);
+      setEditOpen(false);
+      toast.success("Property updated");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const assignTenant = async () => {
     setSavingTenant(true);
@@ -146,11 +175,21 @@ export default function PropertyDetail() {
         <Link to="/properties" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#004B87] mb-4">
           <ArrowLeft size={14} weight="bold" /> All properties
         </Link>
-        <div className="flex items-start justify-between flex-wrap gap-4 mb-8">
+        <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
           <div>
             <Eyebrow>Property file</Eyebrow>
             <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-2" data-testid="property-detail-title">{property.address}</h1>
             <div className="text-slate-600">{property.suburb}, {property.city} · {property.bedrooms} bed · {property.bathrooms} bath</div>
+            {(currentUser?.role === "property_manager" || currentUser?.role === "landlord") && (
+              <button
+                onClick={() => setEditOpen((v) => !v)}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#004B87] transition-colors"
+                data-testid="property-edit-toggle"
+              >
+                <PencilSimple size={13} weight="bold" />
+                {editOpen ? "Close editor" : "Edit details"}
+              </button>
+            )}
           </div>
           <div className="bg-white border border-slate-200 p-4 min-w-[180px]">
             <div className="label-eyebrow">Risk score</div>
@@ -159,7 +198,7 @@ export default function PropertyDetail() {
             <button onClick={createShare} data-testid="property-share-btn" className="mt-3 w-full bg-[#004B87] hover:bg-[#003A69] text-white text-xs font-bold uppercase tracking-wider py-2">
               Share with landlord
             </button>
-            {currentUser?.role === "property_manager" && (
+            {(currentUser?.role === "property_manager" || currentUser?.role === "landlord") && (
               <button
                 onClick={deleteProperty}
                 disabled={deleting}
@@ -177,6 +216,53 @@ export default function PropertyDetail() {
             )}
           </div>
         </div>
+
+        {/* Inline edit form */}
+        {editOpen && (
+          <form onSubmit={saveEdit} className="bg-white border border-[#004B87]/30 p-5 mb-6" data-testid="property-edit-form">
+            <div className="label-eyebrow mb-4">Edit property details</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="md:col-span-2">
+                <label className="label-eyebrow block mb-1">Address</label>
+                <input required value={editForm.address} onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" />
+              </div>
+              <div>
+                <label className="label-eyebrow block mb-1">Postcode</label>
+                <input value={editForm.postcode} onChange={(e) => setEditForm((f) => ({ ...f, postcode: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" />
+              </div>
+              <div>
+                <label className="label-eyebrow block mb-1">Suburb</label>
+                <input required value={editForm.suburb} onChange={(e) => setEditForm((f) => ({ ...f, suburb: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" />
+              </div>
+              <div>
+                <label className="label-eyebrow block mb-1">City</label>
+                <input required value={editForm.city} onChange={(e) => setEditForm((f) => ({ ...f, city: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label-eyebrow block mb-1">Bedrooms</label>
+                  <input type="number" min="0" value={editForm.bedrooms} onChange={(e) => setEditForm((f) => ({ ...f, bedrooms: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" />
+                </div>
+                <div>
+                  <label className="label-eyebrow block mb-1">Bathrooms</label>
+                  <input type="number" min="0" value={editForm.bathrooms} onChange={(e) => setEditForm((f) => ({ ...f, bathrooms: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" />
+                </div>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="label-eyebrow block mb-1">Notes</label>
+              <textarea rows={2} value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]" placeholder="Internal notes…" />
+            </div>
+            <div className="flex gap-3">
+              <button type="submit" disabled={saving} data-testid="property-edit-save" className="px-5 py-2 bg-[#004B87] hover:bg-[#003A69] disabled:opacity-60 text-white text-sm font-semibold">
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+              <button type="button" onClick={() => setEditOpen(false)} className="px-5 py-2 border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Occupants — property manager only */}
         {currentUser?.role === "property_manager" && (
