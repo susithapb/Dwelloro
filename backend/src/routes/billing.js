@@ -238,7 +238,7 @@ export default async function billingRoutes(app) {
         })),
       };
     } catch (error) {
-        console.error("Billing request failed:", e.message);
+        console.error("Billing request failed:", error.message);
         return reply.code(500).send({ detail: "Billing error" });
     }
   });

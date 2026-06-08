@@ -31,8 +31,8 @@ export async function putObject(path, buf, contentType) {
       size: buf.length,
     };
   } catch (err) {
-    console.log(err)
-    return reply.code(500).send({ detail: "Storage error" });
+    console.error("[storage] putObject failed:", err.message);
+    throw err;
   }
 }
 
