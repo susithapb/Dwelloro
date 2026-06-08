@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow } from "../components/Common";
@@ -7,6 +8,7 @@ import { Upload, Sparkle, X } from "@phosphor-icons/react";
 
 export default function ReportIssue() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [form, setForm] = useState({
     property_id: "",
@@ -19,7 +21,6 @@ export default function ReportIssue() {
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(null);
 
   useEffect(() => {
     apiClient.get("/properties").then(({ data }) => {
@@ -86,15 +87,11 @@ export default function ReportIssue() {
         photo_paths: photoPaths,
         category: aiResult?.category,
       });
-      // attach AI analysis if present
       if (aiResult) {
         await apiClient.patch(`/tickets/${data.id}`, { note: `AI summary: ${aiResult.summary}` });
       }
-      setSubmitted(data);
       toast.success("Ticket created");
-      setForm({ property_id: form.property_id, title: "", description: "", urgency: "medium" });
-      setPhotoPaths([]);
-      setAiResult(null);
+      navigate(`/tickets/${data.id}`);
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to create ticket");
     } finally {
@@ -110,13 +107,6 @@ export default function ReportIssue() {
           Report a maintenance issue
         </h1>
         <p className="text-slate-600 mb-8">Add photos for instant AI triage. Everything is timestamped and stored as evidence.</p>
-
-        {submitted && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-300 p-4 text-sm" data-testid="report-success">
-            <div className="font-bold text-emerald-800">Ticket #{submitted.id.slice(0, 8)} created.</div>
-            <div className="text-emerald-700">Your property manager has been notified.</div>
-          </div>
-        )}
 
         <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white border border-slate-200 p-6 space-y-5">

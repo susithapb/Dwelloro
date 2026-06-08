@@ -106,6 +106,23 @@ export default async function propertyRoutes(app) {
     },
   );
 
+  app.delete(
+    "/:id",
+    { preHandler: requireRoles("property_manager") },
+    async (req, reply) => {
+      const property = await Property.findOne({
+        id: req.params.id,
+        manager_id: req.user.sub,
+      });
+      if (!property) return reply.code(404).send({ detail: "Property not found" });
+      await Compliance.deleteMany({ property_id: property.id });
+      await Ticket.deleteMany({ property_id: property.id });
+      await Inspection.deleteMany({ property_id: property.id });
+      await property.deleteOne();
+      return reply.code(204).send();
+    },
+  );
+
   app.post(
     "/:id/share",
     { preHandler: requireRoles("property_manager", "landlord") },

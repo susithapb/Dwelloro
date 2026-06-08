@@ -5,6 +5,7 @@ import { apiClient } from "../lib/api";
 import { Eyebrow } from "../components/Common";
 import { ArrowRight, CreditCard, Sparkle, Receipt, ShieldWarning } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useAuth } from "../lib/api";
 
 const PLAN_BADGE = {
   free: { label: "Free", cls: "bg-slate-100 text-slate-700 border-slate-300" },
@@ -14,8 +15,10 @@ const PLAN_BADGE = {
 };
 
 export default function Billing() {
+  const { updateUser } = useAuth();
   const [data, setData] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     apiClient.get("/billing/me")
@@ -33,9 +36,18 @@ export default function Billing() {
 
   const handleCancel = async () => {
     if (!confirming) { setConfirming(true); return; }
-    // Real cancellation goes through Stripe billing portal — placeholder for now.
-    toast("Cancellation isn't enabled in this preview. Email billing@dwelloro.app to cancel.", { duration: 5000 });
-    setConfirming(false);
+    setCancelling(true);
+    try {
+      await apiClient.post("/billing/cancel");
+      setData((d) => ({ ...d, plan_tier: "free", plan_started_at: null, stripe_session_id: null }));
+      updateUser({ plan_tier: "free" });
+      toast.success("Subscription cancelled — you're now on the free plan.");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Cancellation failed");
+    } finally {
+      setConfirming(false);
+      setCancelling(false);
+    }
   };
 
   return (
@@ -91,7 +103,7 @@ export default function Billing() {
                   data-testid="cancel-plan-btn"
                   className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-sm border ${confirming ? "bg-[#FF5722] text-white border-[#FF5722]" : "border-slate-300 text-slate-700 hover:bg-slate-50"}`}
                 >
-                  <ShieldWarning size={14} weight="bold" /> {confirming ? "Confirm cancel" : "Cancel subscription"}
+                  <ShieldWarning size={14} weight="bold" /> {cancelling ? "Cancelling…" : confirming ? "Confirm cancel" : "Cancel subscription"}
                 </button>
               )}
             </div>

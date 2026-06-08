@@ -206,6 +206,18 @@ export default async function billingRoutes(app) {
     },
   );
 
+  app.post("/cancel", { preHandler: authenticate }, async (req, reply) => {
+    const u = await User.findOne({ id: req.user.sub });
+    if (!u) return reply.code(404).send({ detail: "User not found" });
+    if (u.plan_tier === "free")
+      return reply.code(400).send({ detail: "Already on free plan" });
+    u.plan_tier = "free";
+    u.plan_started_at = null;
+    u.stripe_session_id = null;
+    await u.save();
+    return { plan_tier: "free" };
+  });
+
   app.get("/me", { preHandler: authenticate }, async (req, reply) => {
     try {
       const u = await User.findOne({ id: req.user.sub });

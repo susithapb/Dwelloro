@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
-import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X } from "@phosphor-icons/react";
+import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PropertyIntelligence from "../components/PropertyIntelligence";
 
@@ -20,6 +20,7 @@ const STATUSES = ["compliant", "missing_evidence", "at_risk", "non_compliant"];
 export default function PropertyDetail() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [items, setItems] = useState([]);
   const [tickets, setTickets] = useState([]);
@@ -28,6 +29,8 @@ export default function PropertyDetail() {
   const [tenants, setTenants] = useState([]);
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [savingTenant, setSavingTenant] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -71,6 +74,20 @@ export default function PropertyDetail() {
       toast.error(e?.response?.data?.detail || "Failed to update tenant");
     } finally {
       setSavingTenant(false);
+    }
+  };
+
+  const deleteProperty = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/properties/${id}`);
+      toast.success("Property deleted");
+      navigate("/properties");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Delete failed");
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -142,6 +159,17 @@ export default function PropertyDetail() {
             <button onClick={createShare} data-testid="property-share-btn" className="mt-3 w-full bg-[#004B87] hover:bg-[#003A69] text-white text-xs font-bold uppercase tracking-wider py-2">
               Share with landlord
             </button>
+            {currentUser?.role === "property_manager" && (
+              <button
+                onClick={deleteProperty}
+                disabled={deleting}
+                data-testid="property-delete-btn"
+                className={`mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider py-2 border transition-colors disabled:opacity-50 ${confirmDelete ? "bg-[#FF5722] text-white border-[#FF5722]" : "border-slate-300 text-slate-600 hover:border-red-400 hover:text-red-600"}`}
+              >
+                <Trash size={12} weight="bold" />
+                {deleting ? "Deleting…" : confirmDelete ? "Confirm delete" : "Delete property"}
+              </button>
+            )}
             {showShare && shareUrl && (
               <div className="mt-3 text-[11px] font-mono break-all bg-slate-50 border border-slate-200 p-2" data-testid="share-link-display">
                 {shareUrl}
