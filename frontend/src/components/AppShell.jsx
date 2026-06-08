@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate, Link } from "react-router-dom";
-import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown } from "@phosphor-icons/react";
+import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown, ChartBar } from "@phosphor-icons/react";
 import { Brand } from "./Common";
 import { useAuth } from "../lib/api";
 
@@ -12,6 +12,11 @@ const PLAN_BADGE = {
 };
 
 const linksByRole = {
+  admin: [
+    { to: "/admin/billing", label: "Overview", icon: ChartBar },
+    { to: "/admin/users", label: "Users", icon: Users },
+    { to: "/admin/staff", label: "Staff", icon: Crown },
+  ],
   property_manager: [
     { to: "/dashboard", label: "Dashboard", icon: House },
     { to: "/properties", label: "Properties", icon: Buildings },
@@ -95,8 +100,8 @@ export default function AppShell({ children }) {
             </div>
           </div>
 
-          {/* Plan tile */}
-          {(() => {
+          {/* Plan tile — hidden for admin staff */}
+          {user?.role !== "admin" && (() => {
             const tier = user?.plan_tier || "free";
             const meta = PLAN_BADGE[tier] || PLAN_BADGE.free;
             return (
@@ -119,12 +124,6 @@ export default function AppShell({ children }) {
             );
           })()}
 
-          {/* Admin entry — visible only when an admin endpoint is reachable.
-              Backed by ADMIN_EMAILS env var on the server; non-admins get 403 and we hide the link. */}
-          {user?.email && (
-            <AdminEntry />
-          )}
-
           <button
             onClick={onLogout}
             data-testid="sidebar-logout-btn"
@@ -140,29 +139,3 @@ export default function AppShell({ children }) {
   );
 }
 
-// Probes /admin/metrics. If 200, renders the admin link. Silently hidden for non-admins.
-function AdminEntry() {
-  const [isAdmin, setIsAdmin] = React.useState(false);
-  React.useEffect(() => {
-    import("../lib/api").then(({ apiClient }) => {
-      apiClient.get("/admin/metrics", { validateStatus: () => true })
-        .then(r => setIsAdmin(r.status === 200));
-    });
-  }, []);
-  if (!isAdmin) return null;
-  return (
-    <Link
-      to="/admin/billing"
-      data-testid="sidebar-admin-link"
-      className="block border border-slate-200 hover:border-[#FF5722] p-2.5 mb-3 transition-colors"
-    >
-      <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wider text-slate-500">Admin</div>
-        <Crown size={12} weight="bold" className="text-[#FF5722]" />
-      </div>
-      <div className="text-[11px] text-slate-600 mt-1 font-semibold hover:text-[#FF5722]">
-        Billing operations →
-      </div>
-    </Link>
-  );
-}

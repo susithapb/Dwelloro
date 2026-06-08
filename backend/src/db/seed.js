@@ -4,6 +4,10 @@ import Property from '../models/Property.js';
 import Compliance from '../models/Compliance.js';
 import { COMPLIANCE_AREAS } from '../config/constants.js';
 
+const ADMIN_USERS = [
+  ['admin@dwelloro.com', 'DwelloroAdmin!1', 'Dwelloro Admin', 'admin'],
+];
+
 const DEMO_USERS = [
   ['manager@dwelloro.demo', 'Demo!123', 'Alex Manager', 'property_manager'],
   ['tenant@dwelloro.demo', 'Demo!123', 'Sam Tenant', 'tenant'],
@@ -14,6 +18,12 @@ const DEMO_USERS = [
 
 export async function seed() {
   const ids = {};
+
+  for (const [email, pw, name, role] of ADMIN_USERS) {
+    if (!await User.findOne({ email })) {
+      await User.create({ email, full_name: name, role, password_hash: bcrypt.hashSync(pw, 10) });
+    }
+  }
 
   for (const [email, pw, name, role] of DEMO_USERS) {
     let user = await User.findOne({ email });

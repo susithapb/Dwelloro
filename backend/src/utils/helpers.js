@@ -15,6 +15,9 @@ export const strip = (doc) => {
  */
 export const now = () => new Date().toISOString();
 
+/**
+ * Check the maximum limit of properties for free tier
+ */
 const PLAN_LIMITS = { free: 3, starter: 25, pro: 100, enterprise: Infinity };
 export function planLimitFor(tier) {
   return PLAN_LIMITS[tier] ?? PLAN_LIMITS.free;

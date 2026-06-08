@@ -23,6 +23,8 @@ import Pricing from "@/pages/pricing";
 import BillingSuccess from "@/pages/billing-success";
 import Billing from "@/pages/billing";
 import AdminBilling from "@/pages/admin-billing";
+import AdminUsers from "@/pages/admin-users";
+import AdminStaff from "@/pages/admin-staff";
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -54,6 +56,8 @@ function App() {
           <Route path="/portfolio/trends" element={<Private><PortfolioTrends /></Private>} />
           <Route path="/billing" element={<Private><Billing /></Private>} />
           <Route path="/admin/billing" element={<Private><AdminBilling /></Private>} />
+          <Route path="/admin/users" element={<Private><AdminUsers /></Private>} />
+          <Route path="/admin/staff" element={<Private><AdminStaff /></Private>} />
           <Route path="/share/property/:id" element={<PropertyShareReport />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

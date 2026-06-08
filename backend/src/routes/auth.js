@@ -11,6 +11,9 @@ const sign = (user) =>
 export default async function authRoutes(app) {
   app.post('/register', async (req, reply) => {
     const { email, password, full_name, role, phone } = req.body || {};
+    if (role === 'admin') {
+      return reply.code(400).send({ detail: 'Invalid role' });
+    }
     if (await User.findOne({ email: email.toLowerCase() })) {
       return reply.code(400).send({ detail: 'Email already registered' });
     }
