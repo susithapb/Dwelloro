@@ -44,6 +44,40 @@ export default async function authRoutes(app) {
     return strip(user);
   });
 
+  app.patch('/me', { preHandler: authenticate }, async (req, reply) => {
+    const user = await User.findOne({ id: req.user.sub });
+    if (!user) return reply.code(404).send({ detail: 'User not found' });
+    const { full_name, phone, email } = req.body || {};
+    if (email && email.toLowerCase() !== user.email) {
+      if (await User.findOne({ email: email.toLowerCase() })) {
+        return reply.code(400).send({ detail: 'Email already in use' });
+      }
+      user.email = email.toLowerCase();
+    }
+    if (full_name !== undefined) user.full_name = full_name;
+    if (phone !== undefined) user.phone = phone;
+    await user.save();
+    return strip(user);
+  });
+
+  app.post('/change-password', { preHandler: authenticate }, async (req, reply) => {
+    const { current_password, new_password } = req.body || {};
+    if (!current_password || !new_password) {
+      return reply.code(400).send({ detail: 'current_password and new_password are required' });
+    }
+    if (new_password.length < 8) {
+      return reply.code(400).send({ detail: 'Password must be at least 8 characters' });
+    }
+    const user = await User.findOne({ id: req.user.sub });
+    if (!user) return reply.code(404).send({ detail: 'User not found' });
+    if (!bcrypt.compareSync(current_password, user.password_hash)) {
+      return reply.code(400).send({ detail: 'Current password is incorrect' });
+    }
+    user.password_hash = bcrypt.hashSync(new_password, 10);
+    await user.save();
+    return { detail: 'Password updated successfully' };
+  });
+
   app.post('/forgot-password', async (req, reply) => {
     const { email } = req.body || {};
     // Always return 200 — don't reveal whether the email exists

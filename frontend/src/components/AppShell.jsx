@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate, Link } from "react-router-dom";
-import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown, ChartBar } from "@phosphor-icons/react";
+import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown, ChartBar, GearSix } from "@phosphor-icons/react";
 import { Brand } from "./Common";
 import { useAuth } from "../lib/api";
 
@@ -88,9 +88,13 @@ export default function AppShell({ children }) {
           })}
         </nav>
         <div className="border-t border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-slate-200 flex items-center justify-center">
-              <User size={16} weight="bold" />
+          <Link
+            to="/settings"
+            data-testid="sidebar-settings-link"
+            className="flex items-center gap-2 mb-3 -mx-1 px-1 py-1 hover:bg-slate-50 transition-colors group"
+          >
+            <div className="w-8 h-8 bg-slate-200 flex items-center justify-center group-hover:bg-[#004B87] transition-colors flex-shrink-0">
+              <User size={16} weight="bold" className="group-hover:text-white transition-colors" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold truncate" data-testid="sidebar-user-name">{user?.full_name}</div>
@@ -98,7 +102,8 @@ export default function AppShell({ children }) {
                 {(user?.role || "").replace("_", " ")}
               </div>
             </div>
-          </div>
+            <GearSix size={14} weight="bold" className="text-slate-400 group-hover:text-[#004B87] flex-shrink-0 transition-colors" />
+          </Link>
 
           {/* Plan tile — hidden for admin staff */}
           {user?.role !== "admin" && (() => {

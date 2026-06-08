@@ -27,6 +27,7 @@ import AdminUsers from "@/pages/admin-users";
 import AdminStaff from "@/pages/admin-staff";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import Settings from "@/pages/settings";
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -47,6 +48,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/settings" element={<Private><Settings /></Private>} />
           <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
           <Route path="/report" element={<Private><ReportIssue /></Private>} />
           <Route path="/tickets" element={<Private><Tickets /></Private>} />

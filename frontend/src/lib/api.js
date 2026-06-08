@@ -68,8 +68,12 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
+  const updateUser = (updates) => {
+    setUser((prev) => ({ ...prev, ...updates }));
+  };
+
   return (
-    <AuthCtx.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthCtx.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
       {children}
     </AuthCtx.Provider>
   );
