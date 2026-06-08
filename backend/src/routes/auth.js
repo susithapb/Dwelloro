@@ -16,6 +16,9 @@ export default async function authRoutes(app) {
     if (role === 'admin') {
       return reply.code(400).send({ detail: 'Invalid role' });
     }
+    if (!password || password.length < 8) {
+      return reply.code(400).send({ detail: 'Password must be at least 8 characters' });
+    }
     if (await User.findOne({ email: email.toLowerCase() })) {
       return reply.code(400).send({ detail: 'Email already registered' });
     }

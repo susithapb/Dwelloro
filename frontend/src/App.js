@@ -28,6 +28,7 @@ import AdminStaff from "@/pages/admin-staff";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
 import Settings from "@/pages/settings";
+import NotFound from "@/pages/not-found";
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -65,7 +66,7 @@ function App() {
           <Route path="/admin/users" element={<Private><AdminUsers /></Private>} />
           <Route path="/admin/staff" element={<Private><AdminStaff /></Private>} />
           <Route path="/share/property/:id" element={<PropertyShareReport />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

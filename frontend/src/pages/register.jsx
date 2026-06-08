@@ -76,7 +76,7 @@ export default function Register() {
               onChange={onChange("password")}
               data-testid="register-password-input"
               className="w-full border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-[#004B87]"
-              minLength={6}
+              minLength={8}
             />
           </div>
           <div>
