@@ -20,8 +20,7 @@ export default function Properties() {
     try {
       const { data } = await apiClient.get("/properties");
       setItems(data || []);
-    } catch (e) {
-      console.error("Properties load failed", e);
+    } catch {
       setItems([]);
     } finally {
       setLoading(false);
@@ -39,7 +38,6 @@ export default function Properties() {
       setForm({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: "", bathrooms: "", notes: "" });
       load();
     } catch (err) {
-      console.log(err)
       const data = err?.response?.data;
       if (data?.detail === "plan_limit_reached") {
         const suggested = data.plan_tier === "free" ? "starter" : data.plan_tier === "starter" ? "pro" : "enterprise";

@@ -7,6 +7,7 @@ import { recomputeRiskScore } from '../services/risk.js';
 import { generateContractorBrief } from '../services/ai.js';
 import { notifyContractorAssigned } from '../services/notify.js';
 import { strip, now } from '../utils/helpers.js';
+import { collect, required } from '../utils/validate.js';
 
 export default async function ticketRoutes(app) {
   app.get('/', { preHandler: authenticate }, async (req) => {
@@ -26,6 +27,12 @@ export default async function ticketRoutes(app) {
 
   app.post('/', { preHandler: authenticate }, async (req, reply) => {
     const body = req.body || {};
+    const err = collect(
+      required(body.property_id, 'property_id'),
+      required(body.title, 'title'),
+      required(body.description, 'description'),
+    );
+    if (err) return reply.code(400).send({ detail: err });
     const property = await Property.findOne({ id: body.property_id });
     if (!property) return reply.code(404).send({ detail: 'Property not found' });
 
@@ -122,9 +129,7 @@ export default async function ticketRoutes(app) {
         strip(contractor),
         strip(ticket),
         property ? strip(property) : null,
-      )
-        .then((r) => console.log('[notify] result', r))
-        .catch((e) => console.error('[notify] uncaught', e.message));
+      ).catch((e) => console.error('[notify] contractor assigned:', e.message));
 
       return strip(ticket);
     },

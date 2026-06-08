@@ -354,8 +354,6 @@ function ContactSalesModal({ onClose }) {
 
   const submit = (e) => {
     e.preventDefault();
-    // No backend endpoint yet — log & show success. Wire to Resend / HubSpot later.
-    console.log("Enterprise enquiry:", form);
     setSent(true);
     setTimeout(onClose, 2200);
   };

@@ -34,7 +34,7 @@ export default async function uploadRoutes(app) {
         size: ref.size,
       };
     } catch (err) {
-      console.log(err);
+      console.error('[uploads] upload failed:', err.message);
       return reply.code(500).send({ detail: "Upload error" });
     }
   });
@@ -63,10 +63,8 @@ export default async function uploadRoutes(app) {
         .header("Content-Type", record.content_type || contentType)
         .send(Buffer.from(data));
     } catch (err) {
-      console.log(err);
-      return reply
-        .code(500)
-        .send({ detail: "Error occured while fetching image(s)" });
+      console.error('[uploads] file fetch failed:', err.message);
+      return reply.code(500).send({ detail: "Error fetching file" });
     }
   });
 }

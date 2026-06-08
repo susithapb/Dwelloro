@@ -7,6 +7,7 @@ import User from "../models/User.js";
 import { authenticate } from "../middleware/auth.js";
 import { requireRoles } from "../middleware/requireRoles.js";
 import { strip, now, planLimitFor } from "../utils/helpers.js";
+import { collect, required } from "../utils/validate.js";
 import { COMPLIANCE_AREAS } from "../config/constants.js";
 import env from "../config/env.js";
 
@@ -55,13 +56,16 @@ export default async function propertyRoutes(app) {
           }
         }
         const b = req.body || {};
+        const err = collect(
+          required(b.address, 'address'),
+          required(b.suburb, 'suburb'),
+          required(b.city, 'city'),
+        );
+        if (err) return reply.code(400).send({ detail: err });
         const p = await Property.create({ ...b, manager_id: req.user.sub });
         for (const area of COMPLIANCE_AREAS)
           await Compliance.create({ property_id: p.id, area });
         return strip(p);
-      } catch (err) {
-        console.log(err);
-      }
     },
   );
 

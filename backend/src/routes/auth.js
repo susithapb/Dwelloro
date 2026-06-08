@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { strip } from '../utils/helpers.js';
+import { collect, required, validEmail, minLen, oneOf } from '../utils/validate.js';
 import env from '../config/env.js';
 import { sendPasswordResetEmail } from '../services/notify.js';
 
@@ -13,12 +14,14 @@ const sign = (user) =>
 export default async function authRoutes(app) {
   app.post('/register', async (req, reply) => {
     const { email, password, full_name, role, phone } = req.body || {};
-    if (role === 'admin') {
-      return reply.code(400).send({ detail: 'Invalid role' });
-    }
-    if (!password || password.length < 8) {
-      return reply.code(400).send({ detail: 'Password must be at least 8 characters' });
-    }
+    const VALID_ROLES = ['property_manager', 'tenant', 'contractor', 'landlord', 'inspector'];
+    const err = collect(
+      required(full_name, 'full_name'),
+      validEmail(email),
+      minLen(password, 8, 'password'),
+      oneOf(role, VALID_ROLES, 'role'),
+    );
+    if (err) return reply.code(400).send({ detail: err });
     if (await User.findOne({ email: email.toLowerCase() })) {
       return reply.code(400).send({ detail: 'Email already registered' });
     }
@@ -51,11 +54,15 @@ export default async function authRoutes(app) {
     const user = await User.findOne({ id: req.user.sub });
     if (!user) return reply.code(404).send({ detail: 'User not found' });
     const { full_name, phone, email } = req.body || {};
-    if (email && email.toLowerCase() !== user.email) {
-      if (await User.findOne({ email: email.toLowerCase() })) {
-        return reply.code(400).send({ detail: 'Email already in use' });
+    if (email) {
+      const emailErr = validEmail(email);
+      if (emailErr) return reply.code(400).send({ detail: emailErr });
+      if (email.toLowerCase() !== user.email) {
+        if (await User.findOne({ email: email.toLowerCase() })) {
+          return reply.code(400).send({ detail: 'Email already in use' });
+        }
+        user.email = email.toLowerCase();
       }
-      user.email = email.toLowerCase();
     }
     if (full_name !== undefined) user.full_name = full_name;
     if (phone !== undefined) user.phone = phone;
