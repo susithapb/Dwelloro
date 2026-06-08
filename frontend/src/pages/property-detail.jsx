@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
-import { apiClient, fileUrl } from "../lib/api";
+import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
-import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText } from "@phosphor-icons/react";
+import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PropertyIntelligence from "../components/PropertyIntelligence";
 
@@ -19,11 +19,15 @@ const STATUSES = ["compliant", "missing_evidence", "at_risk", "non_compliant"];
 
 export default function PropertyDetail() {
   const { id } = useParams();
+  const { user: currentUser } = useAuth();
   const [property, setProperty] = useState(null);
   const [items, setItems] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [timeline, setTimeline] = useState({});
   const [loading, setLoading] = useState(true);
+  const [tenants, setTenants] = useState([]);
+  const [selectedTenantId, setSelectedTenantId] = useState("");
+  const [savingTenant, setSavingTenant] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -44,6 +48,31 @@ export default function PropertyDetail() {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (currentUser?.role === "property_manager") {
+      apiClient.get("/users/tenants").then(({ data }) => setTenants(data));
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (property) setSelectedTenantId(property.tenant_id || "");
+  }, [property]);
+
+  const assignTenant = async () => {
+    setSavingTenant(true);
+    try {
+      const { data } = await apiClient.patch(`/properties/${id}`, {
+        tenant_id: selectedTenantId || null,
+      });
+      setProperty(data);
+      toast.success(selectedTenantId ? "Tenant assigned" : "Tenant removed");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Failed to update tenant");
+    } finally {
+      setSavingTenant(false);
+    }
+  };
 
   const updateItem = async (item, updates) => {
     try {
@@ -120,6 +149,80 @@ export default function PropertyDetail() {
             )}
           </div>
         </div>
+
+        {/* Occupants — property manager only */}
+        {currentUser?.role === "property_manager" && (
+          <div className="mb-10">
+            <h2 className="font-display text-xl font-bold mb-4">Occupants</h2>
+            <div className="bg-white border border-slate-200 p-5">
+              <div className="flex items-start gap-6 flex-wrap">
+                {/* Current tenant */}
+                <div className="flex-1 min-w-[220px]">
+                  <div className="label-eyebrow mb-2">Current tenant</div>
+                  {property.tenant_id ? (() => {
+                    const t = tenants.find(t => t.id === property.tenant_id);
+                    return t ? (
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-3 py-2.5">
+                        <div className="w-8 h-8 bg-[#004B87] flex items-center justify-center flex-shrink-0">
+                          <User size={14} weight="bold" className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm truncate">{t.full_name}</div>
+                          <div className="text-xs text-slate-500 truncate">{t.email}</div>
+                          {t.phone && <div className="text-xs text-slate-400">{t.phone}</div>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-slate-500 italic">Tenant ID assigned (user not found)</div>
+                    );
+                  })() : (
+                    <div className="text-sm text-slate-400 italic">No tenant assigned</div>
+                  )}
+                </div>
+
+                {/* Assign / change */}
+                <div className="flex-1 min-w-[280px]">
+                  <div className="label-eyebrow mb-2">
+                    {property.tenant_id ? "Change tenant" : "Assign tenant"}
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedTenantId}
+                      onChange={e => setSelectedTenantId(e.target.value)}
+                      className="flex-1 border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+                    >
+                      <option value="">— None —</option>
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.full_name} ({t.email})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={assignTenant}
+                      disabled={savingTenant || selectedTenantId === (property.tenant_id || "")}
+                      className="px-4 py-2 bg-[#004B87] text-white text-sm font-semibold hover:bg-[#003a6e] transition-colors disabled:opacity-40"
+                    >
+                      {savingTenant ? "Saving…" : "Save"}
+                    </button>
+                    {property.tenant_id && (
+                      <button
+                        onClick={() => { setSelectedTenantId(""); }}
+                        title="Clear selection"
+                        className="px-2 py-2 border border-slate-200 hover:bg-slate-50 transition-colors"
+                      >
+                        <X size={14} weight="bold" className="text-slate-500" />
+                      </button>
+                    )}
+                  </div>
+                  {tenants.length === 0 && (
+                    <p className="text-xs text-slate-400 mt-1.5">No tenant accounts registered yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Intelligence */}
         <div className="mb-10">

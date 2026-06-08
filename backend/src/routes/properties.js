@@ -75,6 +75,37 @@ export default async function propertyRoutes(app) {
     return strip(property);
   });
 
+  app.patch(
+    "/:id",
+    { preHandler: requireRoles("property_manager") },
+    async (req, reply) => {
+      const property = await Property.findOne({
+        id: req.params.id,
+        manager_id: req.user.sub,
+      });
+      if (!property) return reply.code(404).send({ detail: "Property not found" });
+
+      const EDITABLE = [
+        "address", "suburb", "city", "postcode",
+        "bedrooms", "bathrooms", "notes",
+        "tenant_id", "landlord_id",
+      ];
+      const body = req.body || {};
+
+      for (const key of EDITABLE) {
+        if (key in body) property[key] = body[key] === "" ? null : body[key];
+      }
+
+      if (body.tenant_id) {
+        const tenant = await User.findOne({ id: body.tenant_id, role: "tenant" });
+        if (!tenant) return reply.code(400).send({ detail: "User is not a tenant" });
+      }
+
+      await property.save();
+      return strip(property);
+    },
+  );
+
   app.post(
     "/:id/share",
     { preHandler: requireRoles("property_manager", "landlord") },

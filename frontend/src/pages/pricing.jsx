@@ -298,7 +298,7 @@ function Header({ user }) {
           <Brand />
         </Link>
         <div className="flex items-center gap-6 text-sm">
-          <Link to="/" className="text-slate-600 hover:text-[#004B87]">
+          <Link to={user ? "/dashboard" : "/"} className="text-slate-600 hover:text-[#004B87]">
             Home
           </Link>
           <Link to="/pricing" className="font-semibold text-[#004B87]">

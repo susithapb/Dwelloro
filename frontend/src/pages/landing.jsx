@@ -1,9 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ArrowRight, ShieldCheck, Wrench, Buildings, Drop, Wind, Thermometer, ChartLineUp, Camera } from "@phosphor-icons/react";
 import { Brand, Eyebrow } from "../components/Common";
+import { useAuth } from "../lib/api";
 
 export default function Landing() {
+  const { user } = useAuth();
+  if (user) return <Navigate to="/dashboard" replace />;
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Nav */}

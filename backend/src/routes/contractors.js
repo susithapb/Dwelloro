@@ -15,6 +15,15 @@ export default async function contractorRoutes(app) {
   );
 
   app.get(
+    '/api/users/tenants',
+    { preHandler: requireRoles('property_manager') },
+    async () => {
+      const docs = await User.find({ role: 'tenant' });
+      return docs.map(strip);
+    },
+  );
+
+  app.get(
     '/api/contractors/metrics',
     { preHandler: authenticate },
     async (req, reply) => {
