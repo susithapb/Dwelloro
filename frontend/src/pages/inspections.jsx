@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
-import { Eyebrow, StatusBadge } from "../components/Common";
+import { Eyebrow, StatusBadge, SkeletonTable, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
 import { Plus, ClipboardText } from "@phosphor-icons/react";
 import { toast } from "sonner";
@@ -102,13 +102,21 @@ export default function Inspections() {
         )}
 
         {loading ? (
-          <div className="text-slate-500">Loading…</div>
+          <SkeletonTable rows={3} cols={4} />
         ) : inspections.length === 0 ? (
-          <div className="bg-white border border-slate-200 p-10 text-center">
-            <ClipboardText size={40} weight="duotone" className="text-[#004B87] mx-auto" />
-            <div className="font-display text-xl font-bold mt-3">No inspections yet</div>
-            <div className="text-sm text-slate-500 mt-1">Start your first room-by-room walkthrough.</div>
-          </div>
+          <EmptyState
+            icon={ClipboardText}
+            title="No inspections yet"
+            description="Start a room-by-room walkthrough to begin building a property health record."
+            action={canCreate && (
+              <button
+                onClick={() => setShowNew(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF5722] hover:bg-[#E64A19] text-white font-semibold text-sm"
+              >
+                <Plus size={14} weight="bold" /> New inspection
+              </button>
+            )}
+          />
         ) : (
           <div className="bg-white border border-slate-200">
             <table className="w-full text-sm">

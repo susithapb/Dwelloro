@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient } from "../lib/api";
-import { Eyebrow } from "../components/Common";
-import { Users, TrendUp, Clock } from "@phosphor-icons/react";
+import { Eyebrow, SkeletonTable, SkeletonStatTile, EmptyState } from "../components/Common";
+import { Users, TrendUp, Clock, UserPlus } from "@phosphor-icons/react";
 
 export default function Contractors() {
   const [metrics, setMetrics] = useState([]);
@@ -13,8 +13,7 @@ export default function Contractors() {
       try {
         const { data } = await apiClient.get("/contractors/metrics");
         setMetrics(data || []);
-      } catch (e) {
-        console.error(e);
+      } catch {
         setMetrics([]);
       } finally {
         setLoading(false);
@@ -42,18 +41,26 @@ export default function Contractors() {
         </h1>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Tile icon={Users} label="Contractors" value={metrics.length} />
-          <Tile icon={TrendUp} label="Total jobs" value={portfolio.total} />
-          <Tile icon={Clock} label="Active jobs" value={portfolio.in_progress + portfolio.open} accent />
-          <Tile icon={TrendUp} label="Completed" value={portfolio.completed} />
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)
+          ) : (
+            <>
+              <Tile icon={Users} label="Contractors" value={metrics.length} />
+              <Tile icon={TrendUp} label="Total jobs" value={portfolio.total} />
+              <Tile icon={Clock} label="Active jobs" value={portfolio.in_progress + portfolio.open} accent />
+              <Tile icon={TrendUp} label="Completed" value={portfolio.completed} />
+            </>
+          )}
         </div>
 
         {loading ? (
-          <div className="text-slate-500">Loading…</div>
+          <SkeletonTable rows={4} cols={7} />
         ) : metrics.length === 0 ? (
-          <div className="bg-white border border-slate-200 p-10 text-center text-slate-500">
-            No contractors yet. Invite contractors to your workspace to begin tracking performance.
-          </div>
+          <EmptyState
+            icon={UserPlus}
+            title="No contractors yet"
+            description="When contractors are assigned to tickets they'll appear here with performance metrics."
+          />
         ) : (
           <div className="bg-white border border-slate-200 overflow-x-auto" data-testid="contractor-metrics-table">
             <table className="w-full text-sm">

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export function StatusBadge({ status, children, className = "" }) {
   const map = {
@@ -66,6 +67,86 @@ export function Brand({ className = "" }) {
 export function Eyebrow({ children }) {
   return <div className="label-eyebrow">{children}</div>;
 }
+
+// ── Skeletons ──────────────────────────────────────────────────────────────
+
+export function Skeleton({ className = "" }) {
+  return <div className={`animate-pulse bg-slate-200 ${className}`} />;
+}
+
+export function SkeletonStatTile() {
+  return (
+    <div className="bg-white border border-slate-200 p-5">
+      <Skeleton className="h-2.5 w-20 mb-2" />
+      <Skeleton className="h-8 w-14 mb-1.5" />
+      <Skeleton className="h-2 w-28" />
+    </div>
+  );
+}
+
+export function SkeletonTable({ rows = 4, cols = 4 }) {
+  const widths = ["w-36", "w-20", "w-16", "w-12", "w-16", "w-12"];
+  return (
+    <div className="bg-white border border-slate-200 overflow-hidden">
+      <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex gap-8">
+        {Array.from({ length: cols }).map((_, i) => (
+          <Skeleton key={i} className={`h-2.5 ${widths[i] || "w-16"}`} />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, ri) => (
+        <div key={ri} className="border-t border-slate-100 px-5 py-4 flex gap-8 items-center">
+          <div className="flex-1 min-w-0">
+            <Skeleton className="h-3.5 w-40 mb-1.5" />
+            <Skeleton className="h-2.5 w-24" />
+          </div>
+          {Array.from({ length: cols - 1 }).map((_, ci) => (
+            <Skeleton key={ci} className={`h-3 flex-shrink-0 ${widths[ci + 1] || "w-16"}`} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonKanban({ cols = 5 }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      {Array.from({ length: cols }).map((_, ci) => (
+        <div key={ci} className="bg-white border border-slate-200 min-h-[200px]">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <Skeleton className="h-2.5 w-20" />
+            <Skeleton className="h-2.5 w-5" />
+          </div>
+          <div className="p-3 space-y-3">
+            {Array.from({ length: ci % 2 === 0 ? 3 : 2 }).map((_, ri) => (
+              <div key={ri} className="bg-[#F8FAFC] border border-slate-200 p-3">
+                <Skeleton className="h-3.5 w-full mb-2" />
+                <Skeleton className="h-2.5 w-3/4" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Empty state ─────────────────────────────────────────────────────────────
+
+export function EmptyState({ icon: Icon, title, description, action }) {
+  return (
+    <div className="bg-white border border-slate-200 p-12 text-center">
+      {Icon && <Icon size={40} weight="duotone" className="text-slate-300 mx-auto" />}
+      <div className="font-display text-lg font-bold text-slate-800 mt-3">{title}</div>
+      {description && (
+        <p className="text-sm text-slate-500 mt-1.5 max-w-xs mx-auto">{description}</p>
+      )}
+      {action && <div className="mt-6">{action}</div>}
+    </div>
+  );
+}
+
+// ── Data tiles ───────────────────────────────────────────────────────────────
 
 export function StatTile({ label, value, sub, accent = false }) {
   return (

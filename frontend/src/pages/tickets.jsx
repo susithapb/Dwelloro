@@ -3,7 +3,8 @@ import AppShell from "../components/AppShell";
 import { apiClient } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
 import { Link } from "react-router-dom";
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import { MagnifyingGlass, X, Ticket } from "@phosphor-icons/react";
+import { SkeletonKanban, EmptyState } from "../components/Common";
 
 const COLUMNS = [
   { key: "open", label: "Open" },
@@ -100,7 +101,14 @@ export default function Tickets() {
         </div>
 
         {loading ? (
-          <div className="text-slate-500">Loading…</div>
+          <SkeletonKanban cols={5} />
+        ) : filteredTickets.length === 0 && hasFilters ? (
+          <EmptyState
+            icon={Ticket}
+            title="No tickets match your filters"
+            description="Try adjusting the search or filters above."
+            action={<button onClick={clearFilters} className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-sm font-semibold hover:bg-slate-50"><X size={13} weight="bold" /> Clear filters</button>}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4" data-testid="tickets-board">
             {COLUMNS.map((c) => {

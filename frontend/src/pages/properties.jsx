@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
-import { Eyebrow } from "../components/Common";
+import { Eyebrow, SkeletonTable, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
-import { Plus } from "@phosphor-icons/react";
+import { Plus, Buildings } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import UpgradeModal from "../components/UpgradeModal";
 
@@ -166,9 +166,21 @@ export default function Properties() {
         )}
 
         {loading ? (
-          <div className="text-slate-500">Loading…</div>
+          <SkeletonTable rows={4} cols={4} />
         ) : items.length === 0 ? (
-          <div className="bg-white border border-slate-200 p-10 text-center text-slate-500">No properties yet.</div>
+          <EmptyState
+            icon={Buildings}
+            title="No properties yet"
+            description="Add your first property to start tracking maintenance and compliance."
+            action={user?.role === "property_manager" && (
+              <button
+                onClick={() => setShowNew(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF5722] hover:bg-[#E64A19] text-white font-semibold text-sm"
+              >
+                <Plus size={14} weight="bold" /> Add property
+              </button>
+            )}
+          />
         ) : (
           <div className="bg-white border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm">

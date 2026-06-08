@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
-import { Eyebrow, StatTile, StatusBadge } from "../components/Common";
+import { Eyebrow, StatTile, StatusBadge, SkeletonStatTile, SkeletonTable, Skeleton, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
-import { ArrowRight, Buildings, Wrench, ShieldCheck } from "@phosphor-icons/react";
+import { ArrowRight, Buildings, Wrench, ShieldCheck, Ticket } from "@phosphor-icons/react";
 import AlertsFeed from "../components/AlertsFeed";
 import PortfolioIntelligence from "../components/PortfolioIntelligence";
 
@@ -20,8 +20,8 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const [pr, tk] = await Promise.all([
-          apiClient.get("/properties").catch((e) => { console.error("properties fetch", e); return { data: [] }; }),
-          apiClient.get("/tickets").catch((e) => { console.error("tickets fetch", e); return { data: [] }; }),
+          apiClient.get("/properties").catch(() => ({ data: [] })),
+          apiClient.get("/tickets").catch(() => ({ data: [] })),
         ]);
         if (cancelled) return;
         setProps(pr.data || []);
@@ -65,10 +65,16 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatTile label="Properties" value={props.length} sub="Under management" />
-          <StatTile label="Open tickets" value={openCount} sub="Awaiting action" accent={openCount > 0} />
-          <StatTile label="High urgency" value={criticalCount} sub="Critical + High" />
-          <StatTile label="Healthy Homes flags" value={hhCount} sub="AI detected" />
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)
+          ) : (
+            <>
+              <StatTile label="Properties" value={props.length} sub="Under management" />
+              <StatTile label="Open tickets" value={openCount} sub="Awaiting action" accent={openCount > 0} />
+              <StatTile label="High urgency" value={criticalCount} sub="Critical + High" />
+              <StatTile label="Healthy Homes flags" value={hhCount} sub="AI detected" />
+            </>
+          )}
         </div>
 
         {isOps && (
@@ -93,9 +99,22 @@ export default function Dashboard() {
               </Link>
             </div>
             {loading ? (
-              <div className="p-8 text-center text-slate-500">Loading…</div>
+              <div className="p-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 py-3 border-t border-slate-100 first:border-t-0">
+                    <div className="flex-1"><Skeleton className="h-3.5 w-44 mb-1.5" /><Skeleton className="h-2.5 w-28" /></div>
+                    <Skeleton className="h-5 w-14" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
+                ))}
+              </div>
             ) : tickets.length === 0 ? (
-              <div className="p-8 text-center text-slate-500">No tickets yet.</div>
+              <EmptyState
+                icon={Ticket}
+                title="No tickets yet"
+                description="Tenants can report maintenance issues from their dashboard."
+                action={<Link to="/report" className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF5722] text-white text-sm font-semibold hover:bg-[#E64A19]">Report an issue <ArrowRight size={13} weight="bold" /></Link>}
+              />
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-slate-50">
@@ -133,8 +152,18 @@ export default function Dashboard() {
                 <Buildings size={18} weight="bold" className="text-[#004B87]" />
                 <h3 className="font-display font-bold">Properties</h3>
               </div>
-              {props.length === 0 ? (
-                <div className="p-5 text-sm text-slate-500">No properties yet.</div>
+              {loading ? (
+                <div className="p-4 space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i}><Skeleton className="h-3.5 w-36 mb-1.5" /><Skeleton className="h-2.5 w-24 mb-2" /><Skeleton className="h-1 w-full" /></div>
+                  ))}
+                </div>
+              ) : props.length === 0 ? (
+                <div className="p-6 text-center">
+                  <Buildings size={28} weight="duotone" className="text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">No properties yet.</p>
+                  <Link to="/properties" className="mt-3 inline-block text-xs font-semibold text-[#004B87] hover:underline">Add a property →</Link>
+                </div>
               ) : (
                 <ul>
                   {props.slice(0, 4).map((p) => (

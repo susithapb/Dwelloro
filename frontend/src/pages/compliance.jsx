@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient } from "../lib/api";
-import { Eyebrow, StatusBadge } from "../components/Common";
+import { Eyebrow, StatusBadge, SkeletonTable, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
+import { ShieldCheck, Plus } from "@phosphor-icons/react";
 
 const AREAS = ["heating", "insulation", "ventilation", "moisture", "draught_stopping"];
 
@@ -38,9 +39,18 @@ export default function Compliance() {
           Healthy Homes compliance
         </h1>
         {loading ? (
-          <div className="text-slate-500">Loading…</div>
+          <SkeletonTable rows={3} cols={6} />
         ) : props.length === 0 ? (
-          <div className="bg-white border border-slate-200 p-10 text-center text-slate-500">No properties yet.</div>
+          <EmptyState
+            icon={ShieldCheck}
+            title="No properties to review"
+            description="Add a property first — compliance records are created automatically."
+            action={
+              <Link to="/properties" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#004B87] hover:bg-[#003A69] text-white font-semibold text-sm">
+                <Plus size={14} weight="bold" /> Add property
+              </Link>
+            }
+          />
         ) : (
           <div className="bg-white border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm">
