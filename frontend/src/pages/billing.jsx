@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
-import { apiClient } from "../lib/api";
+import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow } from "../components/Common";
 import { ArrowRight, CreditCard, Sparkle, Receipt, ShieldWarning } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { useAuth } from "../lib/api";
 
 const PLAN_BADGE = {
   free: { label: "Free", cls: "bg-slate-100 text-slate-700 border-slate-300" },
@@ -15,8 +14,12 @@ const PLAN_BADGE = {
 };
 
 export default function Billing() {
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const [data, setData] = useState(null);
+
+  if (user && user.role !== "property_manager" && user.role !== "landlord") {
+    return <Navigate to="/dashboard" replace />;
+  }
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 

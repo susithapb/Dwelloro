@@ -254,6 +254,56 @@ export default function Pricing() {
         </p>
       </section>
 
+      {/* Who subscribes vs who's free */}
+      <section className="max-w-4xl mx-auto px-6 md:px-8 pb-10">
+        <div className="bg-[#0F172A] text-white p-8 md:p-10">
+          <div className="label-eyebrow text-slate-400 mb-2">No per-seat fees</div>
+          <h2 className="font-display text-2xl font-bold mb-2">
+            Tenants, contractors and inspectors join free.
+          </h2>
+          <p className="text-slate-300 text-sm max-w-2xl mb-8">
+            Subscriptions are for the people who own and manage properties — property managers and self-managing landlords. Everyone else you invite collaborates under your account at no extra cost.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">Subscribes</div>
+              <div className="space-y-2">
+                {[
+                  { role: "Property Manager", desc: "Creates and manages properties professionally." },
+                  { role: "Landlord", desc: "Self-managing landlord who owns and manages their own portfolio." },
+                ].map(({ role, desc }) => (
+                  <div key={role} className="border border-slate-700 p-4 flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#F5A623] mb-0.5">{role}</div>
+                      <div className="text-xs text-slate-400 leading-relaxed">{desc}</div>
+                    </div>
+                    <div className="text-xs font-bold text-slate-300 flex-shrink-0">Paid plan</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">Always free</div>
+              <div className="space-y-2">
+                {[
+                  { role: "Tenant", desc: "Reports issues, tracks progress on their tickets." },
+                  { role: "Contractor", desc: "Receives work orders, updates job status." },
+                  { role: "Inspector", desc: "Conducts room-by-room inspections on your behalf." },
+                ].map(({ role, desc }) => (
+                  <div key={role} className="border border-slate-700 p-4 flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#F5A623] mb-0.5">{role}</div>
+                      <div className="text-xs text-slate-400 leading-relaxed">{desc}</div>
+                    </div>
+                    <div className="text-xs font-bold text-emerald-400 flex-shrink-0">Free</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ teaser */}
       <section className="max-w-4xl mx-auto px-6 md:px-8 pb-16">
         <h2 className="font-display text-2xl font-bold mb-6">

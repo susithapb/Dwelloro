@@ -20,6 +20,13 @@ function allowedForProperty(user, property) {
   return false;
 }
 
+function ownerQuery(user, propertyId) {
+  const q = { id: propertyId };
+  if (user.role === "landlord") q.landlord_id = user.sub;
+  else q.manager_id = user.sub;
+  return q;
+}
+
 export default async function propertyRoutes(app) {
   app.get("/", { preHandler: authenticate }, async (req) => {
     const { role, sub } = req.user;
@@ -35,15 +42,17 @@ export default async function propertyRoutes(app) {
 
   app.post(
     "/",
-    { preHandler: requireRoles("property_manager") },
+    { preHandler: requireRoles("property_manager", "landlord") },
     async (req, reply) => {
+      const isLandlord = req.user.role === "landlord";
       const u = await User.findOne({ id: req.user.sub });
       const tier = u?.plan_tier || "free";
       const limit = planLimitFor(tier);
       if (limit !== Infinity) {
-        const count = await Property.countDocuments({
-          manager_id: req.user.sub,
-        });
+        const countQuery = isLandlord
+          ? { landlord_id: req.user.sub }
+          : { manager_id: req.user.sub };
+        const count = await Property.countDocuments(countQuery);
         if (count >= limit) {
           return reply.code(403).send({
             detail: "plan_limit_reached",
@@ -61,7 +70,8 @@ export default async function propertyRoutes(app) {
         required(b.city, "city"),
       );
       if (err) return reply.code(400).send({ detail: err });
-      const p = await Property.create({ ...b, manager_id: req.user.sub });
+      const idField = isLandlord ? "landlord_id" : "manager_id";
+      const p = await Property.create({ ...b, [idField]: req.user.sub });
       for (const area of COMPLIANCE_AREAS)
         await Compliance.create({ property_id: p.id, area });
       return strip(p);
@@ -80,19 +90,15 @@ export default async function propertyRoutes(app) {
 
   app.patch(
     "/:id",
-    { preHandler: requireRoles("property_manager") },
+    { preHandler: requireRoles("property_manager", "landlord") },
     async (req, reply) => {
-      const property = await Property.findOne({
-        id: req.params.id,
-        manager_id: req.user.sub,
-      });
+      const property = await Property.findOne(ownerQuery(req.user, req.params.id));
       if (!property) return reply.code(404).send({ detail: "Property not found" });
 
-      const EDITABLE = [
-        "address", "suburb", "city", "postcode",
-        "bedrooms", "bathrooms", "notes",
-        "tenant_id", "landlord_id",
-      ];
+      // Landlords can't reassign landlord_id on their own properties
+      const EDITABLE = req.user.role === "landlord"
+        ? ["address", "suburb", "city", "postcode", "bedrooms", "bathrooms", "notes", "tenant_id"]
+        : ["address", "suburb", "city", "postcode", "bedrooms", "bathrooms", "notes", "tenant_id", "landlord_id"];
       const body = req.body || {};
 
       for (const key of EDITABLE) {
@@ -111,12 +117,9 @@ export default async function propertyRoutes(app) {
 
   app.delete(
     "/:id",
-    { preHandler: requireRoles("property_manager") },
+    { preHandler: requireRoles("property_manager", "landlord") },
     async (req, reply) => {
-      const property = await Property.findOne({
-        id: req.params.id,
-        manager_id: req.user.sub,
-      });
+      const property = await Property.findOne(ownerQuery(req.user, req.params.id));
       if (!property) return reply.code(404).send({ detail: "Property not found" });
       await Compliance.deleteMany({ property_id: property.id });
       await Ticket.deleteMany({ property_id: property.id });

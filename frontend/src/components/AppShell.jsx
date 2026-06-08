@@ -105,8 +105,8 @@ export default function AppShell({ children }) {
             <GearSix size={14} weight="bold" className="text-slate-400 group-hover:text-[#004B87] flex-shrink-0 transition-colors" />
           </Link>
 
-          {/* Plan tile — hidden for admin staff */}
-          {user?.role !== "admin" && (() => {
+          {/* Plan tile — property owners only (PM + self-managing landlord) */}
+          {(user?.role === "property_manager" || user?.role === "landlord") && (() => {
             const tier = user?.plan_tier || "free";
             const meta = PLAN_BADGE[tier] || PLAN_BADGE.free;
             return (

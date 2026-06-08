@@ -211,8 +211,8 @@ export default function Settings() {
           </form>
         </section>
 
-        {/* Plan shortcut — non-admin only */}
-        {user?.role !== "admin" && (
+        {/* Plan shortcut — property owners only (PM + self-managing landlord) */}
+        {(user?.role === "property_manager" || user?.role === "landlord") && (
           <section className="bg-white border border-slate-200">
             <div className="px-6 py-4 border-b border-slate-200">
               <h2 className="font-display font-bold text-lg">Plan & billing</h2>
