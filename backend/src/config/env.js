@@ -13,7 +13,7 @@ const env = {
   AWS_REGION: 'ap-southeast-2',
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-  AWS_S3_BUCKET: 'dwelloro-202029085297-ap-southeast-2-an',
+  AWS_S3_BUCKET: 'propintel-202029085297-ap-southeast-2-an',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || 'sk-ant-DUMMY-KEY-REPLACE-ME',
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
 };
