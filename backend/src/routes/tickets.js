@@ -5,7 +5,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireRoles } from '../middleware/requireRoles.js';
 import { recomputeRiskScore } from '../services/risk.js';
 import { generateContractorBrief } from '../services/ai.js';
-import { notifyContractorAssigned, notifyTicketStatusUpdate } from '../services/notify.js';
+import { notifyContractorAssigned, notifyTicketStatusUpdate, notifyQuoteSubmitted, notifyQuoteDecision } from '../services/notify.js';
 import { strip, now } from '../utils/helpers.js';
 import { collect, required } from '../utils/validate.js';
 
@@ -88,6 +88,114 @@ export default async function ticketRoutes(app) {
         property ? strip(property) : null,
         body.status,
       ).catch((e) => console.error('[notify] status update:', e.message));
+    }
+
+    return strip(ticket);
+  });
+
+  app.post('/:id/quote', { preHandler: requireRoles('contractor') }, async (req, reply) => {
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    if (ticket.assigned_contractor_id !== req.user.sub) {
+      return reply.code(403).send({ detail: 'Not assigned to this ticket' });
+    }
+    if (['completed', 'closed'].includes(ticket.status)) {
+      return reply.code(400).send({ detail: 'Cannot quote on a completed ticket' });
+    }
+
+    const amount = Number(req.body?.amount);
+    if (!req.body?.amount || isNaN(amount) || amount <= 0) {
+      return reply.code(400).send({ detail: 'A valid quote amount (NZD) is required' });
+    }
+
+    ticket.quote_amount = amount;
+    ticket.quote_notes = req.body?.notes || '';
+    ticket.quote_submitted_at = now();
+    ticket.quote_approved_at = null;
+    ticket.quote_approved_by = null;
+    ticket.quote_rejected_at = null;
+    ticket.quote_rejection_reason = null;
+    ticket.status = 'awaiting_quote';
+    ticket.timeline = [
+      ...(ticket.timeline || []),
+      { at: now(), by: req.user.sub, event: 'quote_submitted', note: `Quote submitted: NZD ${amount.toFixed(2)}` },
+    ];
+    ticket.updated_at = now();
+    await ticket.save();
+
+    const [property, contractor] = await Promise.all([
+      Property.findOne({ id: ticket.property_id }),
+      User.findOne({ id: req.user.sub }),
+    ]);
+    const manager = property?.manager_id ? await User.findOne({ id: property.manager_id }) : null;
+    const landlord = property?.landlord_id ? await User.findOne({ id: property.landlord_id }) : null;
+    const recipient = manager || landlord;
+    if (recipient) {
+      notifyQuoteSubmitted(strip(recipient), strip(ticket), property ? strip(property) : null, contractor ? strip(contractor) : null)
+        .catch((e) => console.error('[notify] quote submitted:', e.message));
+    }
+
+    return strip(ticket);
+  });
+
+  app.post('/:id/quote/approve', { preHandler: requireRoles('property_manager', 'landlord') }, async (req, reply) => {
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    if (ticket.status !== 'awaiting_quote') {
+      return reply.code(400).send({ detail: 'No pending quote to approve' });
+    }
+
+    ticket.quote_approved_at = now();
+    ticket.quote_approved_by = req.user.sub;
+    ticket.quote_rejected_at = null;
+    ticket.quote_rejection_reason = null;
+    ticket.status = 'in_progress';
+    ticket.timeline = [
+      ...(ticket.timeline || []),
+      { at: now(), by: req.user.sub, event: 'quote_approved', note: `Quote approved: NZD ${(ticket.quote_amount || 0).toFixed(2)}` },
+    ];
+    ticket.updated_at = now();
+    await ticket.save();
+
+    recomputeRiskScore(ticket.property_id).catch(() => {});
+
+    const [contractor, property] = await Promise.all([
+      User.findOne({ id: ticket.assigned_contractor_id }),
+      Property.findOne({ id: ticket.property_id }),
+    ]);
+    if (contractor) {
+      notifyQuoteDecision(strip(contractor), strip(ticket), property ? strip(property) : null, 'approved', null)
+        .catch((e) => console.error('[notify] quote approved:', e.message));
+    }
+
+    return strip(ticket);
+  });
+
+  app.post('/:id/quote/reject', { preHandler: requireRoles('property_manager', 'landlord') }, async (req, reply) => {
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    if (ticket.status !== 'awaiting_quote') {
+      return reply.code(400).send({ detail: 'No pending quote to reject' });
+    }
+
+    const reason = req.body?.reason || '';
+    ticket.quote_rejected_at = now();
+    ticket.quote_rejection_reason = reason;
+    ticket.status = 'assigned';
+    ticket.timeline = [
+      ...(ticket.timeline || []),
+      { at: now(), by: req.user.sub, event: 'quote_rejected', note: reason ? `Quote rejected: ${reason}` : 'Quote rejected' },
+    ];
+    ticket.updated_at = now();
+    await ticket.save();
+
+    const [contractor, property] = await Promise.all([
+      User.findOne({ id: ticket.assigned_contractor_id }),
+      Property.findOne({ id: ticket.property_id }),
+    ]);
+    if (contractor) {
+      notifyQuoteDecision(strip(contractor), strip(ticket), property ? strip(property) : null, 'rejected', reason)
+        .catch((e) => console.error('[notify] quote rejected:', e.message));
     }
 
     return strip(ticket);

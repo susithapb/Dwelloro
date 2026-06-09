@@ -4,9 +4,9 @@ import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
 import { toast } from "sonner";
-import { ArrowLeft, Sparkle, ShieldCheck } from "@phosphor-icons/react";
+import { ArrowLeft, Sparkle, ShieldCheck, CurrencyDollar, CheckCircle, XCircle, Clock } from "@phosphor-icons/react";
 
-const STATUSES = ["open", "assigned", "in_progress", "awaiting_quote", "completed", "closed"];
+const STATUSES = ["open", "assigned", "in_progress", "completed", "closed"];
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -19,8 +19,15 @@ export default function TicketDetail() {
   const [contractors, setContractors] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState("");
   const [assigning, setAssigning] = useState(false);
+  const [quoteAmount, setQuoteAmount] = useState("");
+  const [quoteNotes, setQuoteNotes] = useState("");
+  const [submittingQuote, setSubmittingQuote] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
 
-  const canAssign = user?.role === "property_manager"
+  const canAssign = user?.role === "property_manager" || user?.role === "landlord";
+  const isAssignedContractor = user?.role === "contractor" && ticket?.assigned_contractor_id === user?.id;
+  const canReviewQuote = (user?.role === "property_manager" || user?.role === "landlord") && ticket?.status === "awaiting_quote";
 
   const load = async () => {
     setLoading(true);
@@ -93,6 +100,44 @@ export default function TicketDetail() {
       toast.error("Failed to assign contractor");
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const onSubmitQuote = async (e) => {
+    e.preventDefault();
+    setSubmittingQuote(true);
+    try {
+      const { data } = await apiClient.post(`/tickets/${id}/quote`, { amount: Number(quoteAmount), notes: quoteNotes });
+      setTicket(data);
+      setQuoteAmount("");
+      setQuoteNotes("");
+      toast.success("Quote submitted — awaiting approval");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to submit quote");
+    } finally {
+      setSubmittingQuote(false);
+    }
+  };
+
+  const onApproveQuote = async () => {
+    try {
+      const { data } = await apiClient.post(`/tickets/${id}/quote/approve`);
+      setTicket(data);
+      toast.success("Quote approved — work is now in progress");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to approve quote");
+    }
+  };
+
+  const onRejectQuote = async () => {
+    try {
+      const { data } = await apiClient.post(`/tickets/${id}/quote/reject`, { reason: rejectReason });
+      setTicket(data);
+      setShowRejectForm(false);
+      setRejectReason("");
+      toast.success("Quote rejected — contractor will be notified");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to reject quote");
     }
   };
 
@@ -270,6 +315,151 @@ export default function TicketDetail() {
                 >
                   {assigning ? "Assigning…" : ticket.assigned_contractor_id ? "Reassign" : "Assign"}
                 </button>
+              </div>
+            )}
+
+            {/* Contractor: submit a quote */}
+            {isAssignedContractor && ticket.status === "assigned" && (
+              <div className="bg-white border border-slate-200 p-5" data-testid="quote-submit-panel">
+                <div className="flex items-center gap-2 mb-3">
+                  <CurrencyDollar size={18} weight="bold" className="text-[#004B87]" />
+                  <div className="label-eyebrow">Submit a quote</div>
+                </div>
+                <form onSubmit={onSubmitQuote} className="space-y-3">
+                  <div>
+                    <label className="label-eyebrow block mb-1">Amount (NZD) <span className="text-[#FF5722]">*</span></label>
+                    <div className="flex items-center border border-slate-300 focus-within:ring-2 focus-within:ring-[#004B87]">
+                      <span className="px-3 py-2 text-slate-500 text-sm border-r border-slate-300 bg-slate-50">$</span>
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value={quoteAmount}
+                        onChange={(e) => setQuoteAmount(e.target.value)}
+                        data-testid="quote-amount-input"
+                        placeholder="0.00"
+                        className="flex-1 px-3 py-2 text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label-eyebrow block mb-1">Notes <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
+                    <textarea
+                      value={quoteNotes}
+                      onChange={(e) => setQuoteNotes(e.target.value)}
+                      rows={3}
+                      data-testid="quote-notes-input"
+                      placeholder="Scope of work, materials, estimated time…"
+                      className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submittingQuote || !quoteAmount}
+                    data-testid="quote-submit-btn"
+                    className="w-full bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-50 text-white py-2.5 font-semibold text-sm"
+                  >
+                    {submittingQuote ? "Submitting…" : "Submit quote"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Contractor: quote pending review */}
+            {isAssignedContractor && ticket.status === "awaiting_quote" && (
+              <div className="bg-amber-50 border border-amber-200 p-5" data-testid="quote-pending-panel">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock size={18} weight="bold" className="text-amber-600" />
+                  <div className="label-eyebrow text-amber-700">Quote pending review</div>
+                </div>
+                <div className="text-2xl font-display font-bold text-amber-800 mb-1">
+                  NZD {Number(ticket.quote_amount).toFixed(2)}
+                </div>
+                {ticket.quote_notes && <p className="text-sm text-amber-700">{ticket.quote_notes}</p>}
+                <p className="text-xs text-amber-600 mt-2">Submitted {new Date(ticket.quote_submitted_at).toLocaleString()}</p>
+              </div>
+            )}
+
+            {/* PM / landlord: review quote */}
+            {canReviewQuote && (
+              <div className="bg-white border-2 border-[#004B87] p-5" data-testid="quote-review-panel">
+                <div className="flex items-center gap-2 mb-3">
+                  <CurrencyDollar size={18} weight="bold" className="text-[#004B87]" />
+                  <div className="label-eyebrow text-[#004B87]">Quote awaiting approval</div>
+                </div>
+                <div className="text-3xl font-display font-bold text-[#004B87] mb-1">
+                  NZD {Number(ticket.quote_amount).toFixed(2)}
+                </div>
+                {ticket.quote_notes && (
+                  <p className="text-sm text-slate-700 mt-2 mb-3 whitespace-pre-wrap">{ticket.quote_notes}</p>
+                )}
+                <p className="text-xs text-slate-400 mb-4">
+                  Submitted {new Date(ticket.quote_submitted_at).toLocaleString()}
+                </p>
+                <div className="space-y-2">
+                  <button
+                    onClick={onApproveQuote}
+                    data-testid="quote-approve-btn"
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 font-semibold text-sm"
+                  >
+                    <CheckCircle size={16} weight="bold" /> Approve — start work
+                  </button>
+                  {!showRejectForm ? (
+                    <button
+                      onClick={() => setShowRejectForm(true)}
+                      data-testid="quote-reject-btn"
+                      className="w-full flex items-center justify-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 py-2.5 font-semibold text-sm"
+                    >
+                      <XCircle size={16} weight="bold" /> Reject
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <textarea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        rows={2}
+                        data-testid="reject-reason-input"
+                        placeholder="Reason for rejection (optional)…"
+                        className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={onRejectQuote}
+                          data-testid="quote-reject-confirm-btn"
+                          className="flex-1 bg-[#FF5722] hover:bg-[#E64A19] text-white py-2 font-semibold text-sm"
+                        >
+                          Confirm reject
+                        </button>
+                        <button
+                          onClick={() => { setShowRejectForm(false); setRejectReason(""); }}
+                          className="px-3 py-2 border border-slate-300 text-slate-600 text-sm hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Previous quote result (after decision) */}
+            {ticket.quote_amount != null && !["awaiting_quote", "assigned", "open"].includes(ticket.status) && (
+              <div className="bg-white border border-slate-200 p-4">
+                <div className="label-eyebrow mb-2">Quote</div>
+                <div className="font-display font-bold text-lg">NZD {Number(ticket.quote_amount).toFixed(2)}</div>
+                {ticket.quote_approved_at && (
+                  <div className="flex items-center gap-1 text-xs text-emerald-600 mt-1">
+                    <CheckCircle size={12} weight="bold" /> Approved {new Date(ticket.quote_approved_at).toLocaleDateString()}
+                  </div>
+                )}
+                {ticket.quote_rejected_at && (
+                  <div className="flex items-center gap-1 text-xs text-red-500 mt-1">
+                    <XCircle size={12} weight="bold" /> Rejected {new Date(ticket.quote_rejected_at).toLocaleDateString()}
+                    {ticket.quote_rejection_reason && <span className="text-slate-500"> · {ticket.quote_rejection_reason}</span>}
+                  </div>
+                )}
               </div>
             )}
 
