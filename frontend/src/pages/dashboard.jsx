@@ -3,7 +3,7 @@ import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow, StatTile, StatusBadge, SkeletonStatTile, SkeletonTable, Skeleton, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
-import { ArrowRight, Buildings, Wrench, ShieldCheck, Ticket, ClipboardText } from "@phosphor-icons/react";
+import { ArrowRight, Buildings, Wrench, ShieldCheck, Ticket, ClipboardText, CheckCircle, Circle } from "@phosphor-icons/react";
 import AlertsFeed from "../components/AlertsFeed";
 import PortfolioIntelligence from "../components/PortfolioIntelligence";
 
@@ -76,6 +76,28 @@ export default function Dashboard() {
             </Link>
           )}
         </div>
+
+        {/* Onboarding checklist for new PMs / landlords */}
+        {!loading && isOps && props.length === 0 && (
+          <div className="bg-[#004B87] text-white p-5 mb-8">
+            <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2">Get started</div>
+            <h2 className="font-display text-xl font-bold mb-4">Welcome to Dwelloro — here's how to set up your portfolio</h2>
+            <div className="space-y-3">
+              {[
+                { label: "Add your first property", href: "/properties", done: false },
+                { label: "Assign a tenant to the property", href: "/properties", done: false },
+                { label: "Review Healthy Homes compliance areas", href: "/compliance", done: false },
+              ].map((step) => (
+                <div key={step.label} className="flex items-center gap-3">
+                  {step.done
+                    ? <CheckCircle size={18} weight="fill" className="text-emerald-400 flex-shrink-0" />
+                    : <Circle size={18} weight="regular" className="opacity-50 flex-shrink-0" />}
+                  <Link to={step.href} className="text-sm font-semibold hover:underline opacity-90">{step.label} →</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {loading ? (

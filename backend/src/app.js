@@ -22,7 +22,11 @@ export async function buildApp() {
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(multipart, { limits: { fileSize: 15 * 1024 * 1024 } });
-  await app.register(rateLimit, { global: false });
+  await app.register(rateLimit, {
+    global: false,
+    keyGenerator: (req) =>
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+  });
 
   app.get('/', async () => ({ name: 'Dwelloro', status: 'ok', backend: 'node-fastify' }));
   app.get('/health', async () => ({ status: 'ok' }));

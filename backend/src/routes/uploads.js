@@ -6,6 +6,25 @@ import { putObject, getObject } from "../services/storage.js";
 import { strip } from "../utils/helpers.js";
 import env from "../config/env.js";
 
+const ALLOWED_MIME = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
+  'application/pdf',
+]);
+
+const MAGIC = {
+  'image/jpeg': [0xFF, 0xD8, 0xFF],
+  'image/png':  [0x89, 0x50, 0x4E, 0x47],
+  'image/gif':  [0x47, 0x49, 0x46],
+  'image/webp': [0x52, 0x49, 0x46, 0x46],
+  'application/pdf': [0x25, 0x50, 0x44, 0x46],
+};
+
+function magicOk(buf, mime) {
+  const sig = MAGIC[mime];
+  if (!sig) return true;
+  return sig.every((b, i) => buf[i] === b);
+}
+
 export default async function uploadRoutes(app) {
   app.post("/api/uploads", { preHandler: authenticate }, async (req, reply) => {
     try {
@@ -13,8 +32,16 @@ export default async function uploadRoutes(app) {
       if (!data) return reply.code(400).send({ detail: "No file" });
 
       const buf = await data.toBuffer();
+      const ct = (data.mimetype || "").toLowerCase().split(";")[0].trim();
+
+      if (!ALLOWED_MIME.has(ct)) {
+        return reply.code(415).send({ detail: `File type not allowed. Accepted: images and PDF.` });
+      }
+      if (!magicOk(buf, ct)) {
+        return reply.code(415).send({ detail: "File content does not match declared type." });
+      }
+
       const ext = (data.filename?.split(".").pop() || "bin").toLowerCase();
-      const ct = data.mimetype || "application/octet-stream";
       const path = `${env.APP_NAME}/uploads/${req.user.sub}/${uuid()}.${ext}`;
 
       const result = await putObject(path, buf, ct);

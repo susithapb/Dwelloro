@@ -24,6 +24,17 @@ export default async function contractorRoutes(app) {
   );
 
   app.get(
+    '/api/users/:id',
+    { preHandler: authenticate },
+    async (req, reply) => {
+      const doc = await User.findOne({ id: req.params.id });
+      if (!doc) return reply.code(404).send({ detail: 'User not found' });
+      const s = strip(doc);
+      return { id: s.id, full_name: s.full_name, email: s.email, phone: s.phone, role: s.role };
+    },
+  );
+
+  app.get(
     '/api/contractors/metrics',
     { preHandler: authenticate },
     async (req, reply) => {

@@ -3,7 +3,7 @@ import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow, SkeletonTable, EmptyState } from "../components/Common";
 import { Link } from "react-router-dom";
-import { Plus, Buildings } from "@phosphor-icons/react";
+import { Plus, Buildings, MagnifyingGlass } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import UpgradeModal from "../components/UpgradeModal";
 
@@ -14,6 +14,7 @@ export default function Properties() {
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ address: "", suburb: "", city: "Auckland", postcode: "", bedrooms: "", bathrooms: "", notes: "" });
   const [upgrade, setUpgrade] = useState(null);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -48,15 +49,20 @@ export default function Properties() {
     }
   };
 
+  const q = search.toLowerCase();
+  const visible = q
+    ? items.filter((p) => [p.address, p.suburb, p.city, p.postcode].some((f) => f?.toLowerCase().includes(q)))
+    : items;
+
   return (
     <AppShell>
       <div className="p-6 md:p-8">
-        <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
+        <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
           <div>
             <Eyebrow>Portfolio</Eyebrow>
             <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-2" data-testid="properties-title">Properties</h1>
           </div>
-          {user?.role === "property_manager" && (
+          {(user?.role === "property_manager" || user?.role === "landlord") && (
             <button
               onClick={() => setShowNew((s) => !s)}
               data-testid="add-property-btn"
@@ -66,6 +72,19 @@ export default function Properties() {
             </button>
           )}
         </div>
+
+        {items.length > 0 && (
+          <div className="relative mb-6 max-w-sm">
+            <MagnifyingGlass size={15} weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by address, suburb or city…"
+              data-testid="property-search"
+              className="w-full border border-slate-300 pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+            />
+          </div>
+        )}
 
         {showNew && (
           <form onSubmit={onCreate} className="bg-white border border-slate-200 p-6 mb-6 max-w-xl space-y-4" data-testid="new-property-form">
@@ -182,6 +201,11 @@ export default function Properties() {
             )}
           />
         ) : (
+          visible.length === 0 ? (
+            <div className="bg-white border border-slate-200 p-8 text-center text-sm text-slate-500">
+              No properties match <strong>"{search}"</strong>.
+            </div>
+          ) : (
           <div className="bg-white border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 sticky top-0">
@@ -193,7 +217,7 @@ export default function Properties() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((p) => (
+                {visible.map((p) => (
                   <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50">
                     <td className="px-5 py-3">
                       <Link to={`/properties/${p.id}`} data-testid={`property-link-${p.id}`} className="font-semibold hover:text-[#004B87]">
@@ -211,6 +235,7 @@ export default function Properties() {
               </tbody>
             </table>
           </div>
+          )
         )}
       </div>
       <UpgradeModal

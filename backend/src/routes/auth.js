@@ -94,7 +94,8 @@ export default async function authRoutes(app) {
     const user = await User.findOne({ email: (email || '').toLowerCase() });
     if (user) {
       const token = crypto.randomBytes(32).toString('hex');
-      user.reset_token = token;
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      user.reset_token = tokenHash;
       user.reset_token_expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       await user.save();
       const resetUrl = `${env.APP_PUBLIC_URL}/reset-password?token=${token}`;
@@ -111,7 +112,8 @@ export default async function authRoutes(app) {
     if (password.length < 8) {
       return reply.code(400).send({ detail: 'Password must be at least 8 characters' });
     }
-    const user = await User.findOne({ reset_token: token });
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({ reset_token: tokenHash });
     if (!user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
       return reply.code(400).send({ detail: 'Reset link is invalid or has expired' });
     }

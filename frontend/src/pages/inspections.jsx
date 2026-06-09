@@ -13,7 +13,9 @@ export default function Inspections() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [newPropId, setNewPropId] = useState("");
+  const [newScheduledAt, setNewScheduledAt] = useState("");
   const [creating, setCreating] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -38,10 +40,13 @@ export default function Inspections() {
     if (!newPropId) return;
     setCreating(true);
     try {
-      const { data } = await apiClient.post("/inspections", { property_id: newPropId });
+      const payload = { property_id: newPropId };
+      if (newScheduledAt) payload.scheduled_at = newScheduledAt;
+      const { data } = await apiClient.post("/inspections", payload);
       toast.success("Inspection created");
       setShowNew(false);
       setNewPropId("");
+      setNewScheduledAt("");
       window.location.href = `/inspections/${data.id}`;
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed");
@@ -51,6 +56,7 @@ export default function Inspections() {
   };
 
   const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
+  const filtered = statusFilter ? inspections.filter((i) => i.status === statusFilter) : inspections;
 
   return (
     <AppShell>
@@ -90,6 +96,16 @@ export default function Inspections() {
                 ))}
               </select>
             </div>
+            <div>
+              <div className="label-eyebrow mb-2">Scheduled date <span className="text-slate-400 normal-case font-normal">(optional)</span></div>
+              <input
+                type="date"
+                value={newScheduledAt}
+                onChange={(e) => setNewScheduledAt(e.target.value)}
+                data-testid="new-inspection-date"
+                className="border border-slate-300 px-4 py-2.5"
+              />
+            </div>
             <button
               type="submit"
               disabled={creating}
@@ -99,6 +115,22 @@ export default function Inspections() {
               {creating ? "Creating…" : "Start inspection"}
             </button>
           </form>
+        )}
+
+        {inspections.length > 0 && (
+          <div className="mb-4">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              data-testid="inspection-status-filter"
+              className="border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87] bg-white"
+            >
+              <option value="">All statuses</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="in_progress">In progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
         )}
 
         {loading ? (
@@ -118,18 +150,23 @@ export default function Inspections() {
             )}
           />
         ) : (
+          filtered.length === 0 ? (
+            <div className="bg-white border border-slate-200 p-8 text-center text-sm text-slate-500">
+              No inspections with status <strong>{statusFilter.replace("_", " ")}</strong>.
+            </div>
+          ) : (
           <div className="bg-white border border-slate-200">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 sticky top-0">
                 <tr className="text-left">
                   <th className="px-5 py-3 label-eyebrow">Property</th>
+                  <th className="px-5 py-3 label-eyebrow">Scheduled</th>
                   <th className="px-5 py-3 label-eyebrow">Rooms</th>
                   <th className="px-5 py-3 label-eyebrow">Status</th>
-                  <th className="px-5 py-3 label-eyebrow text-right">Created</th>
                 </tr>
               </thead>
               <tbody>
-                {inspections.map((i) => {
+                {filtered.map((i) => {
                   const p = propMap[i.property_id];
                   return (
                     <tr key={i.id} className="border-t border-slate-100 hover:bg-slate-50">
@@ -139,17 +176,18 @@ export default function Inspections() {
                         </Link>
                         {p && <div className="text-xs text-slate-500">{p.suburb}, {p.city}</div>}
                       </td>
+                      <td className="px-5 py-3 font-mono text-xs text-slate-600">
+                        {i.scheduled_at ? new Date(i.scheduled_at).toLocaleDateString() : <span className="text-slate-400">—</span>}
+                      </td>
                       <td className="px-5 py-3 font-mono">{i.rooms?.length || 0}</td>
                       <td className="px-5 py-3"><StatusBadge status={i.status === "in_progress" ? "in_progress" : i.status === "completed" ? "completed" : "open"}>{i.status.replace("_", " ")}</StatusBadge></td>
-                      <td className="px-5 py-3 text-right font-mono text-xs text-slate-500">
-                        {new Date(i.created_at).toLocaleDateString()}
-                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          )
         )}
       </div>
     </AppShell>

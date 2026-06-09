@@ -27,6 +27,7 @@ const linksByRole = {
   ],
   tenant: [
     { to: "/dashboard", label: "Dashboard", icon: House },
+    { to: "/my-property", label: "My Property", icon: Buildings },
     { to: "/report", label: "Report Issue", icon: Wrench },
     { to: "/tickets", label: "My Tickets", icon: Wrench },
   ],
