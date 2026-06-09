@@ -6,7 +6,10 @@ import { Eyebrow, StatusBadge } from "../components/Common";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkle, ShieldCheck, CurrencyDollar, CheckCircle, XCircle, Clock } from "@phosphor-icons/react";
 
-const STATUSES = ["open", "assigned", "in_progress", "completed", "closed"];
+const PM_STATUSES = ["open", "assigned", "in_progress", "completed", "closed"];
+const CONTRACTOR_STATUSES = ["in_progress", "completed"];
+
+const fmt = (str) => (str || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -81,21 +84,9 @@ export default function TicketDetail() {
     setAssigning(true);
 
     try {
-      await apiClient.patch(`/tickets/${id}`, {
-        assigned_contractor_id: selectedContractor,
-        status: "assigned",
-      });
-
+      await apiClient.post(`/tickets/${id}/assign`, { contractor_id: selectedContractor });
       toast.success("Contractor assigned");
-
-      setTicket((prev) => ({
-        ...prev,
-        assigned_contractor_id: selectedContractor,
-        status:
-          prev.status === "open"
-            ? "assigned"
-            : prev.status,
-      }));
+      load();
     } catch (err) {
       toast.error("Failed to assign contractor");
     } finally {
@@ -243,7 +234,7 @@ export default function TicketDetail() {
                 {(ticket.timeline || []).map((e, i) => (
                   <li key={i} className="border-l-2 border-[#004B87] pl-3">
                     <div className="font-mono text-[11px] text-slate-500">{new Date(e.at).toLocaleString()}</div>
-                    <div className="font-semibold">{e.event}{e.status ? ` → ${e.status}` : ""}</div>
+                    <div className="font-semibold">{fmt(e.event)}{e.status ? ` → ${fmt(e.status)}` : ""}</div>
                     {e.note && <div className="text-slate-700">{e.note}</div>}
                   </li>
                 ))}
@@ -268,7 +259,7 @@ export default function TicketDetail() {
               <div className="bg-white border border-slate-200 p-5">
                 <div className="label-eyebrow mb-3">Update status</div>
                 <div className="grid grid-cols-2 gap-2">
-                  {STATUSES.map((s) => (
+                  {(canAssign ? PM_STATUSES : CONTRACTOR_STATUSES).map((s) => (
                     <button
                       key={s}
                       onClick={() => onStatus(s)}
@@ -278,7 +269,7 @@ export default function TicketDetail() {
                           : "bg-white border-slate-300 hover:border-[#004B87]"
                         }`}
                     >
-                      {s.replace("_", " ")}
+                      {fmt(s)}
                     </button>
                   ))}
                 </div>
