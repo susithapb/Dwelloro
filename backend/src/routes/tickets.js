@@ -64,14 +64,16 @@ export default async function ticketRoutes(app) {
     const body = req.body || {};
     const oldStatus = ticket.status;
     const event = { at: now(), by: req.user.sub, event: 'updated' };
-    if (body.status) { ticket.status = body.status; event.status = body.status; }
-    if (body.urgency) ticket.urgency = body.urgency;
-    if (body.assigned_contractor_id) {
+    let changed = false;
+    if (body.status && body.status !== ticket.status) { ticket.status = body.status; event.status = body.status; changed = true; }
+    if (body.urgency && body.urgency !== ticket.urgency) { ticket.urgency = body.urgency; changed = true; }
+    if (body.assigned_contractor_id && body.assigned_contractor_id !== ticket.assigned_contractor_id) {
       ticket.assigned_contractor_id = body.assigned_contractor_id;
       event.assigned_to = body.assigned_contractor_id;
+      changed = true;
     }
-    if (body.note) event.note = body.note;
-    ticket.timeline = [...(ticket.timeline || []), event];
+    if (body.note) { event.note = body.note; changed = true; }
+    if (changed) ticket.timeline = [...(ticket.timeline || []), event];
     ticket.updated_at = now();
     await ticket.save();
 

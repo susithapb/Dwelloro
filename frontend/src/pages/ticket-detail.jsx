@@ -263,8 +263,9 @@ export default function TicketDetail() {
                     <button
                       key={s}
                       onClick={() => onStatus(s)}
+                      disabled={ticket.status === s}
                       data-testid={`status-btn-${s}`}
-                      className={`px-2 py-2 text-xs font-bold uppercase tracking-wider border transition-colors ${ticket.status === s
+                      className={`px-2 py-2 text-xs font-bold uppercase tracking-wider border transition-colors disabled:cursor-default ${ticket.status === s
                           ? "bg-[#004B87] text-white border-[#004B87]"
                           : "bg-white border-slate-300 hover:border-[#004B87]"
                         }`}
