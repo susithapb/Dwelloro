@@ -8,6 +8,14 @@ import { ArrowLeft, Sparkle, ShieldCheck, CurrencyDollar, CheckCircle, XCircle, 
 
 const PM_STATUSES = ["open", "assigned", "in_progress", "completed", "closed"];
 const CONTRACTOR_STATUSES = ["in_progress", "completed"];
+const STATUS_ORDER = PM_STATUSES;
+
+function isStatusDisabled(current, target) {
+  if (target === current) return true;
+  if (current === "closed") return true;
+  if (current === "completed" && STATUS_ORDER.indexOf(target) < STATUS_ORDER.indexOf("completed")) return true;
+  return false;
+}
 
 const fmt = (str) => (str || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -259,20 +267,26 @@ export default function TicketDetail() {
               <div className="bg-white border border-slate-200 p-5">
                 <div className="label-eyebrow mb-3">Update status</div>
                 <div className="grid grid-cols-2 gap-2">
-                  {(canAssign ? PM_STATUSES : CONTRACTOR_STATUSES).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => onStatus(s)}
-                      disabled={ticket.status === s}
-                      data-testid={`status-btn-${s}`}
-                      className={`px-2 py-2 text-xs font-bold uppercase tracking-wider border transition-colors disabled:cursor-default ${ticket.status === s
-                          ? "bg-[#004B87] text-white border-[#004B87]"
-                          : "bg-white border-slate-300 hover:border-[#004B87]"
+                  {(canAssign ? PM_STATUSES : CONTRACTOR_STATUSES).map((s) => {
+                    const disabled = isStatusDisabled(ticket.status, s);
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => onStatus(s)}
+                        disabled={disabled}
+                        data-testid={`status-btn-${s}`}
+                        className={`px-2 py-2 text-xs font-bold uppercase tracking-wider border transition-colors ${
+                          ticket.status === s
+                            ? "bg-[#004B87] text-white border-[#004B87] cursor-default"
+                            : disabled
+                            ? "bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed"
+                            : "bg-white border-slate-300 hover:border-[#004B87]"
                         }`}
-                    >
-                      {fmt(s)}
-                    </button>
-                  ))}
+                      >
+                        {fmt(s)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
