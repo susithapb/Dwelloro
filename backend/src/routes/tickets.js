@@ -17,6 +17,9 @@ export default async function ticketRoutes(app) {
     if (req.query.property_id) query.property_id = req.query.property_id;
     if (role === 'tenant') query.reporter_id = sub;
     else if (role === 'contractor') query.assigned_contractor_id = sub;
+    if (req.query.assigned_contractor_id && ['property_manager', 'admin', 'landlord', 'inspector'].includes(role)) {
+      query.assigned_contractor_id = req.query.assigned_contractor_id;
+    }
     else if (role === 'landlord') {
       const props = await Property.find({ landlord_id: sub }, { id: 1 });
       query.property_id = { $in: props.map((p) => p.id) };

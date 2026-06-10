@@ -1,6 +1,8 @@
 import { requireRoles } from '../middleware/requireRoles.js';
 import PaymentTxn from '../models/PaymentTxn.js';
 import User from '../models/User.js';
+import Ticket from '../models/Ticket.js';
+import Inspection from '../models/Inspection.js';
 import bcrypt from 'bcryptjs';
 
 const adminOnly = requireRoles('admin');
@@ -44,6 +46,21 @@ export default async function adminRoutes(app) {
       recent_signups: recentSignups,
       recent_payments: recentPayments,
     };
+  });
+
+  app.get('/api/admin/activity', { preHandler: adminOnly }, async () => {
+    const [users, tickets, inspections] = await Promise.all([
+      User.find({ role: { $ne: 'admin' } }).sort({ created_at: -1 }).limit(20),
+      Ticket.find({}).sort({ created_at: -1 }).limit(20),
+      Inspection.find({}).sort({ created_at: -1 }).limit(20),
+    ]);
+    const events = [
+      ...users.map((u) => ({ type: 'signup', at: u.created_at, label: `${u.full_name} registered as ${u.role.replace('_', ' ')}`, meta: { role: u.role, email: u.email } })),
+      ...tickets.map((t) => ({ type: 'ticket', at: t.created_at, label: `Ticket created: ${t.title}`, meta: { id: t.id, urgency: t.urgency, status: t.status } })),
+      ...inspections.map((i) => ({ type: 'inspection', at: i.created_at, label: `Inspection scheduled`, meta: { id: i.id, property_id: i.property_id, status: i.status } })),
+    ];
+    events.sort((a, b) => new Date(b.at) - new Date(a.at));
+    return events.slice(0, 60);
   });
 
   // List all customer users (excludes admin accounts)

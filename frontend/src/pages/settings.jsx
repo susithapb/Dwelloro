@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow } from "../components/Common";
-import { User, Lock, ArrowRight } from "@phosphor-icons/react";
+import { User, Lock, ArrowRight, Wrench } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -15,10 +15,22 @@ const ROLE_LABELS = {
   admin: "Dwelloro Staff",
 };
 
+const TRADES = [
+  { value: "plumber", label: "Plumber" },
+  { value: "electrician", label: "Electrician" },
+  { value: "builder", label: "Builder / Carpenter" },
+  { value: "painter", label: "Painter / Decorator" },
+  { value: "hvac", label: "HVAC / Heating" },
+  { value: "locksmith", label: "Locksmith" },
+  { value: "roofer", label: "Roofer" },
+  { value: "general_maintenance", label: "General Maintenance" },
+  { value: "other", label: "Other" },
+];
+
 export default function Settings() {
   const { user, updateUser } = useAuth();
 
-  const [profile, setProfile] = useState({ full_name: "", email: "", phone: "" });
+  const [profile, setProfile] = useState({ full_name: "", email: "", phone: "", trade: "" });
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [passwords, setPasswords] = useState({ current_password: "", new_password: "", confirm: "" });
@@ -30,6 +42,7 @@ export default function Settings() {
         full_name: user.full_name || "",
         email: user.email || "",
         phone: user.phone || "",
+        trade: user.trade || "",
       });
     }
   }, [user]);
@@ -38,11 +51,9 @@ export default function Settings() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      const { data } = await apiClient.patch("/auth/me", {
-        full_name: profile.full_name,
-        email: profile.email,
-        phone: profile.phone,
-      });
+      const payload = { full_name: profile.full_name, email: profile.email, phone: profile.phone };
+      if (user?.role === "contractor" && profile.trade) payload.trade = profile.trade;
+      const { data } = await apiClient.patch("/auth/me", payload);
       updateUser(data);
       toast.success("Profile updated");
     } catch (err) {
@@ -132,6 +143,22 @@ export default function Settings() {
                   <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-400">(cannot be changed)</span>
                 </div>
               </div>
+              {user?.role === "contractor" && (
+                <div>
+                  <label className="label-eyebrow block mb-2">Trade / Speciality</label>
+                  <select
+                    value={profile.trade}
+                    onChange={(e) => setProfile((p) => ({ ...p, trade: e.target.value }))}
+                    data-testid="settings-trade-select"
+                    className="w-full border border-slate-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#004B87] bg-white"
+                  >
+                    <option value="">Select a trade…</option>
+                    {TRADES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex justify-end pt-2">
               <button

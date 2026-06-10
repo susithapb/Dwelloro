@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate, Link } from "react-router-dom";
-import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown, ChartBar, GearSix } from "@phosphor-icons/react";
+import { House, Buildings, Wrench, ShieldCheck, SignOut, User, ClipboardText, Users, Sparkle, Crown, ChartBar, GearSix, Pulse } from "@phosphor-icons/react";
 import { Brand } from "./Common";
 import { useAuth } from "../lib/api";
 
@@ -16,6 +16,7 @@ const linksByRole = {
     { to: "/admin/billing", label: "Overview", icon: ChartBar },
     { to: "/admin/users", label: "Users", icon: Users },
     { to: "/admin/staff", label: "Staff", icon: Crown },
+    { to: "/admin/activity", label: "Activity", icon: Pulse },
   ],
   property_manager: [
     { to: "/dashboard", label: "Dashboard", icon: House },

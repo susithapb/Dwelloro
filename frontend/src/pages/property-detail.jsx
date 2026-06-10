@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
-import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash, PencilSimple } from "@phosphor-icons/react";
+import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash, PencilSimple, Printer } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PropertyIntelligence from "../components/PropertyIntelligence";
 
@@ -348,7 +348,18 @@ export default function PropertyDetail() {
         <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold">Healthy Homes compliance</h2>
-            <div className="text-sm text-slate-600 font-mono">{compliantCount}/{items.length} compliant</div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-slate-600 font-mono">{compliantCount}/{items.length} compliant</div>
+              <a
+                href={`/properties/${id}/report`}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="compliance-report-btn"
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#004B87] border border-[#004B87] px-3 py-1.5 hover:bg-[#004B87] hover:text-white transition-colors"
+              >
+                <Printer size={12} weight="bold" /> Print report
+              </a>
+            </div>
           </div>          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             {items.map((it) => {
               const meta = AREA_META[it.area] || { label: it.area, icon: ShieldCheck };

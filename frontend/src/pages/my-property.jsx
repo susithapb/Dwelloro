@@ -3,7 +3,8 @@ import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
 import { Link } from "react-router-dom";
-import { Buildings, Wrench, ArrowRight, ShieldCheck, User } from "@phosphor-icons/react";
+import { Buildings, Wrench, ArrowRight, ShieldCheck, User, Plus, X } from "@phosphor-icons/react";
+import { toast } from "sonner";
 
 const AREA_LABELS = {
   heating: "Heating",
@@ -20,6 +21,9 @@ export default function MyProperty() {
   const [tickets, setTickets] = useState([]);
   const [manager, setManager] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showReport, setShowReport] = useState(false);
+  const [reportForm, setReportForm] = useState({ title: "", description: "", urgency: "medium" });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +50,23 @@ export default function MyProperty() {
       }
     })();
   }, [user]);
+
+  const onSubmitReport = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await apiClient.post("/tickets", { ...reportForm, property_id: property?.id });
+      toast.success("Issue reported — your property manager has been notified");
+      setReportForm({ title: "", description: "", urgency: "medium" });
+      setShowReport(false);
+      const { data: tix } = await apiClient.get(`/tickets?property_id=${property?.id}`).catch(() => ({ data: [] }));
+      setTickets(tix || []);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to submit report");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) return <AppShell><div className="p-8 text-slate-500">Loading…</div></AppShell>;
 
@@ -115,14 +136,73 @@ export default function MyProperty() {
             </div>
             <div className="font-display text-3xl font-bold text-[#004B87]">{openTickets.length}</div>
             <div className="text-sm text-slate-500 mt-1">awaiting action</div>
-            <Link
-              to="/report"
+            <button
+              onClick={() => setShowReport((v) => !v)}
               className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#FF5722] hover:underline"
             >
-              Report an issue <ArrowRight size={13} weight="bold" />
-            </Link>
+              {showReport ? <><X size={13} weight="bold" /> Cancel</> : <><Plus size={13} weight="bold" /> Report an issue</>}
+            </button>
           </div>
         </div>
+
+        {/* Inline quick report */}
+        {showReport && (
+          <form onSubmit={onSubmitReport} className="bg-white border border-[#004B87]/30 p-5 mb-8" data-testid="quick-report-form">
+            <div className="label-eyebrow mb-4">Report a new issue</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="md:col-span-2">
+                <label className="label-eyebrow block mb-1">Title <span className="text-[#FF5722]">*</span></label>
+                <input
+                  required
+                  value={reportForm.title}
+                  onChange={(e) => setReportForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Leaking tap in bathroom"
+                  data-testid="quick-report-title"
+                  className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+                />
+              </div>
+              <div>
+                <label className="label-eyebrow block mb-1">Urgency</label>
+                <select
+                  value={reportForm.urgency}
+                  onChange={(e) => setReportForm((f) => ({ ...f, urgency: e.target.value }))}
+                  data-testid="quick-report-urgency"
+                  className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87] bg-white"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="label-eyebrow block mb-1">Description <span className="text-[#FF5722]">*</span></label>
+              <textarea
+                required
+                rows={3}
+                value={reportForm.description}
+                onChange={(e) => setReportForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Describe the issue in detail…"
+                data-testid="quick-report-description"
+                className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                data-testid="quick-report-submit"
+                className="px-5 py-2 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-white text-sm font-semibold"
+              >
+                {submitting ? "Submitting…" : "Submit report"}
+              </button>
+              <button type="button" onClick={() => setShowReport(false)} className="px-5 py-2 border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Recent tickets */}
         {tickets.length > 0 && (

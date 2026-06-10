@@ -25,6 +25,9 @@ import Billing from "@/pages/billing";
 import AdminBilling from "@/pages/admin-billing";
 import AdminUsers from "@/pages/admin-users";
 import AdminStaff from "@/pages/admin-staff";
+import AdminActivity from "@/pages/admin-activity";
+import ContractorDetail from "@/pages/contractor-detail";
+import ComplianceReport from "@/pages/compliance-report";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
 import Settings from "@/pages/settings";
@@ -67,6 +70,9 @@ function App() {
           <Route path="/admin/billing" element={<Private><AdminBilling /></Private>} />
           <Route path="/admin/users" element={<Private><AdminUsers /></Private>} />
           <Route path="/admin/staff" element={<Private><AdminStaff /></Private>} />
+          <Route path="/admin/activity" element={<Private><AdminActivity /></Private>} />
+          <Route path="/contractors/:id" element={<Private><ContractorDetail /></Private>} />
+          <Route path="/properties/:id/report" element={<Private><ComplianceReport /></Private>} />
           <Route path="/share/property/:id" element={<PropertyShareReport />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

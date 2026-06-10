@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient } from "../lib/api";
 import { Eyebrow, SkeletonTable, SkeletonStatTile, EmptyState } from "../components/Common";
@@ -83,7 +84,7 @@ export default function Contractors() {
                 {metrics.map((m) => (
                   <tr key={m.contractor_id} className="border-t border-slate-100 hover:bg-slate-50" data-testid={`metric-row-${m.contractor_id}`}>
                     <td className="px-5 py-3">
-                      <div className="font-semibold">{m.full_name}</div>
+                      <Link to={`/contractors/${m.contractor_id}`} className="font-semibold hover:text-[#004B87]">{m.full_name}</Link>
                       <div className="text-xs text-slate-500 font-mono">{m.email}</div>
                     </td>
                     <td className="px-5 py-3">
