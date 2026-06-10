@@ -56,8 +56,9 @@ export default function AppShell({ children }) {
   const links = linksByRole[user?.role] || linksByRole.property_manager;
 
   const onLogout = () => {
+    const isDemo = user?.email?.endsWith("@dwelloro.demo");
     logout();
-    nav("/login");
+    window.location.href = isDemo ? "/login?demo=1" : "/login";
   };
 
   return (
