@@ -53,7 +53,7 @@ export default function Landing() {
                 Start free trial <ArrowRight size={18} weight="bold" />
               </Link>
               <Link
-                to="/login"
+                to="/login?demo=1"
                 data-testid="hero-cta-demo"
                 className="border-2 border-[#004B87] text-[#004B87] hover:bg-slate-50 px-6 py-3 font-semibold transition-colors"
               >
