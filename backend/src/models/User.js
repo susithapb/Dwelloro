@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     full_name: String,
     role: String,
     phone: String,
+    trade: String,
     password_hash: String,
     plan_tier: { type: String, default: 'free' },
     plan_started_at: String,

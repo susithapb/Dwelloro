@@ -7,19 +7,21 @@ import { strip } from '../utils/helpers.js';
 import { collect, required, validEmail, minLen, oneOf } from '../utils/validate.js';
 import env from '../config/env.js';
 import { sendPasswordResetEmail } from '../services/notify.js';
+import { CONTRACTOR_TRADES } from '../config/constants.js';
 
 const sign = (user) =>
   jwt.sign({ sub: user.id, role: user.role }, env.JWT_SECRET, { expiresIn: '72h' });
 
 export default async function authRoutes(app) {
   app.post('/register', { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (req, reply) => {
-    const { email, password, full_name, role, phone } = req.body || {};
+    const { email, password, full_name, role, phone, trade } = req.body || {};
     const VALID_ROLES = ['property_manager', 'tenant', 'contractor', 'landlord', 'inspector'];
     const err = collect(
       required(full_name, 'full_name'),
       validEmail(email),
       minLen(password, 8, 'password'),
       oneOf(role, VALID_ROLES, 'role'),
+      role === 'contractor' ? oneOf(trade, CONTRACTOR_TRADES, 'trade') : null,
     );
     if (err) return reply.code(400).send({ detail: err });
     if (await User.findOne({ email: email.toLowerCase() })) {
@@ -30,6 +32,7 @@ export default async function authRoutes(app) {
       full_name,
       role,
       phone,
+      trade: role === 'contractor' ? trade : undefined,
       password_hash: bcrypt.hashSync(password, 10),
     });
     return { access_token: sign(user), token_type: 'bearer', user: strip(user) };
@@ -53,7 +56,7 @@ export default async function authRoutes(app) {
   app.patch('/me', { preHandler: authenticate }, async (req, reply) => {
     const user = await User.findOne({ id: req.user.sub });
     if (!user) return reply.code(404).send({ detail: 'User not found' });
-    const { full_name, phone, email } = req.body || {};
+    const { full_name, phone, email, trade } = req.body || {};
     if (email) {
       const emailErr = validEmail(email);
       if (emailErr) return reply.code(400).send({ detail: emailErr });
@@ -66,6 +69,12 @@ export default async function authRoutes(app) {
     }
     if (full_name !== undefined) user.full_name = full_name;
     if (phone !== undefined) user.phone = phone;
+    if (trade !== undefined && user.role === 'contractor') {
+      if (!CONTRACTOR_TRADES.includes(trade)) {
+        return reply.code(400).send({ detail: 'Invalid trade' });
+      }
+      user.trade = trade;
+    }
     await user.save();
     return strip(user);
   });

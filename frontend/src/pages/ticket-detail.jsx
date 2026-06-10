@@ -18,6 +18,8 @@ function isStatusDisabled(current, target) {
 }
 
 const fmt = (str) => (str || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const TRADE_LABELS = { plumber: "Plumber", electrician: "Electrician", builder: "Builder", painter: "Painter", hvac: "HVAC", locksmith: "Locksmith", roofer: "Roofer", general_maintenance: "General Maintenance", other: "Other" };
+const fmtTrade = (t) => TRADE_LABELS[t] || fmt(t);
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -298,7 +300,7 @@ export default function TicketDetail() {
                   <div className="mb-3 text-sm">
                     <div className="label-eyebrow">Currently assigned</div>
                     <div className="font-semibold mt-1" data-testid="current-assignee-name">
-                      {contractors.find((c) => c.id === ticket.assigned_contractor_id)?.full_name || ticket.assigned_contractor_id.slice(0, 8)}
+                      {(() => { const c = contractors.find((c) => c.id === ticket.assigned_contractor_id); return c ? `${c.full_name}${c.trade ? ` · ${fmtTrade(c.trade)}` : ""}` : ticket.assigned_contractor_id.slice(0, 8); })()}
                     </div>
                   </div>
                 )}
@@ -310,7 +312,7 @@ export default function TicketDetail() {
                 >
                   <option value="">Select a contractor…</option>
                   {contractors.map((c) => (
-                    <option key={c.id} value={c.id}>{c.full_name} — {c.email}</option>
+                    <option key={c.id} value={c.id}>{c.full_name}{c.trade ? ` · ${fmtTrade(c.trade)}` : ""} — {c.email}</option>
                   ))}
                 </select>
                 <button

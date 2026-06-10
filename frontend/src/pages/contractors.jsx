@@ -4,6 +4,9 @@ import { apiClient } from "../lib/api";
 import { Eyebrow, SkeletonTable, SkeletonStatTile, EmptyState } from "../components/Common";
 import { Users, TrendUp, Clock, UserPlus } from "@phosphor-icons/react";
 
+const TRADE_LABELS = { plumber: "Plumber", electrician: "Electrician", builder: "Builder", painter: "Painter", hvac: "HVAC", locksmith: "Locksmith", roofer: "Roofer", general_maintenance: "General Maintenance", other: "Other" };
+const fmtTrade = (t) => TRADE_LABELS[t] || (t || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
 export default function Contractors() {
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +57,7 @@ export default function Contractors() {
         </div>
 
         {loading ? (
-          <SkeletonTable rows={4} cols={7} />
+          <SkeletonTable rows={4} cols={8} />
         ) : metrics.length === 0 ? (
           <EmptyState
             icon={UserPlus}
@@ -67,6 +70,7 @@ export default function Contractors() {
               <thead className="bg-slate-50 sticky top-0">
                 <tr className="text-left">
                   <th className="px-5 py-3 label-eyebrow">Contractor</th>
+                  <th className="px-5 py-3 label-eyebrow">Trade</th>
                   <th className="px-5 py-3 label-eyebrow text-right">Total</th>
                   <th className="px-5 py-3 label-eyebrow text-right">Open</th>
                   <th className="px-5 py-3 label-eyebrow text-right">In progress</th>
@@ -81,6 +85,13 @@ export default function Contractors() {
                     <td className="px-5 py-3">
                       <div className="font-semibold">{m.full_name}</div>
                       <div className="text-xs text-slate-500 font-mono">{m.email}</div>
+                    </td>
+                    <td className="px-5 py-3">
+                      {m.trade ? (
+                        <span className="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-2 py-0.5">{fmtTrade(m.trade)}</span>
+                      ) : (
+                        <span className="text-slate-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-right font-mono">{m.total}</td>
                     <td className="px-5 py-3 text-right font-mono">{m.open_jobs}</td>

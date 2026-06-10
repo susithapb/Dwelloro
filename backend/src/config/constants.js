@@ -14,5 +14,17 @@ export const ROOM_CHECKS = [
   'condition',
 ];
 
+export const CONTRACTOR_TRADES = [
+  'plumber',
+  'electrician',
+  'builder',
+  'painter',
+  'hvac',
+  'locksmith',
+  'roofer',
+  'general_maintenance',
+  'other',
+];
+
 export const STORAGE_URL =
   'https://integrations.emergentagent.com/objstore/api/v1/storage';

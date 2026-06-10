@@ -47,7 +47,7 @@ export default async function contractorRoutes(app) {
 
       for (const contractor of contractors) {
         const tickets = await Ticket.find({ assigned_contractor_id: contractor.id });
-        const completed = tickets.filter((t) => t.status === 'completed');
+        const completed = tickets.filter((t) => ['completed', 'closed'].includes(t.status));
         const inProgress = tickets.filter((t) => t.status === 'in_progress');
         const open = tickets.filter((t) =>
           ['assigned', 'open', 'awaiting_quote'].includes(t.status),
@@ -64,6 +64,7 @@ export default async function contractorRoutes(app) {
           contractor_id: contractor.id,
           full_name: contractor.full_name,
           email: contractor.email,
+          trade: contractor.trade || null,
           total: tickets.length,
           open_jobs: open.length,
           in_progress: inProgress.length,

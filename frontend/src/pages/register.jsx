@@ -12,6 +12,18 @@ const ROLES = [
   { value: "landlord", label: "Landlord" },
 ];
 
+const TRADES = [
+  { value: "plumber", label: "Plumber" },
+  { value: "electrician", label: "Electrician" },
+  { value: "builder", label: "Builder / Carpenter" },
+  { value: "painter", label: "Painter / Decorator" },
+  { value: "hvac", label: "HVAC / Heating" },
+  { value: "locksmith", label: "Locksmith" },
+  { value: "roofer", label: "Roofer" },
+  { value: "general_maintenance", label: "General Maintenance" },
+  { value: "other", label: "Other" },
+];
+
 export default function Register() {
   const { register } = useAuth();
   const nav = useNavigate();
@@ -21,6 +33,7 @@ export default function Register() {
     password: "",
     role: "property_manager",
     phone: "",
+    trade: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,6 +105,23 @@ export default function Register() {
               ))}
             </select>
           </div>
+          {form.role === "contractor" && (
+            <div>
+              <label className="label-eyebrow block mb-2">Trade / Speciality <span className="text-[#FF5722]">*</span></label>
+              <select
+                required
+                value={form.trade}
+                onChange={onChange("trade")}
+                data-testid="register-trade-select"
+                className="w-full border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-[#004B87] bg-white"
+              >
+                <option value="">Select a trade…</option>
+                {TRADES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <button
             type="submit"
             disabled={submitting}
