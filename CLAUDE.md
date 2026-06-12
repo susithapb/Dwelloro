@@ -30,14 +30,7 @@ docker compose down -v     # full reset including MongoDB data
 docker compose up --build  # rebuild after Dockerfile or package.json changes
 ```
 
-There is no test runner wired in the backend `package.json`. Integration tests live in `backend/tests/` and require Python pytest:
-```bash
-cd backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install pytest requests pillow
-REACT_APP_BACKEND_URL=http://localhost:8001 pytest tests/ -v
-# Expected: 44 passed
-```
+There is no test runner wired in the backend `package.json` and no test files currently exist in the repo. The original pytest suite (`44 tests`) was part of the deprecated Python proxy and was removed during the Node migration. Frontend has `craco test` available but no test files exist yet.
 
 ## Environment variables
 
@@ -52,7 +45,10 @@ Copy `.env.example` to `.env` in the repo root (Docker) and in `backend/` (manua
 | `ANTHROPIC_MODEL` | Default `claude-sonnet-4-5-20250929` |
 | `STRIPE_API_KEY` | Without a real key, billing routes return dummy Stripe flow |
 | `RESEND_API_KEY` | Optional — contractor emails are silently skipped if absent |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | File uploads go to S3 bucket `dwelloro-202029085297-ap-southeast-2-an` |
+| `DB_NAME` | MongoDB database name, default `dwelloro_dev` |
+| `APP_PUBLIC_URL` | Base URL for email links and share URLs, e.g. `http://localhost:3000` |
+| `SENDER_EMAIL` | Reply-from address for Resend emails, default `onboarding@resend.dev` |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | File uploads go to S3 bucket `propintel-202029085297-ap-southeast-2-an` |
 
 Frontend only needs `REACT_APP_BACKEND_URL` (default `http://localhost:8002`).
 
@@ -75,8 +71,15 @@ backend/
     models/              # Mongoose schemas: User, Property, Ticket, Compliance, Inspection, FileRef, PaymentTxn
     routes/              # One file per domain: auth, properties, tickets, compliance, inspections,
                          # contractors, intelligence, notifications, uploads, billing, admin, ai, public
-    services/            # Re-exports from top-level ai.js and intelligence.js (namespace shim)
-    utils/helpers.js     # strip() (sanitize Mongoose docs), now(), planLimitFor(tier)
+    services/
+      ai.js              # Shim re-exporting backend/ai.js
+      intelligence.js    # Shim re-exporting backend/intelligence.js
+      notify.js          # Resend email (password reset, contractor assignment emails)
+      risk.js            # Risk scoring calculations
+      storage.js         # S3 upload helpers (used by uploads route)
+    utils/
+      helpers.js         # strip() (sanitize Mongoose docs), now(), planLimitFor(tier)
+      validate.js        # Input validation helpers: collect(), required(), validEmail(), minLen(), oneOf()
 
 frontend/
   src/
@@ -88,7 +91,7 @@ frontend/
 
 ### Key architectural patterns
 
-**Auth flow:** `POST /api/auth/login` returns `{ access_token, user }`. Token stored in `localStorage` under key `miq_token`. Every `apiClient` request injects `Authorization: Bearer <token>` via an axios interceptor. Backend verifies with `authenticate` preHandler and exposes `req.user` (decoded JWT payload including `role`).
+**Auth flow:** `POST /api/auth/login` returns `{ access_token, user }`. Token stored in `localStorage` under key `miq_token`. Every `apiClient` request injects `Authorization: Bearer <token>` via an axios interceptor. Backend verifies with `authenticate` preHandler and exposes `req.user` (decoded JWT payload including `role`). Tokens expire after 72 hours. Auth endpoints (`/register`, `/login`) are rate-limited to 10 requests per 15 minutes.
 
 **Role-based access:** Five roles — `property_manager`, `tenant`, `contractor`, `landlord`, `inspector`. Routes use `{ preHandler: requireRoles('property_manager') }` for role enforcement.
 
@@ -96,7 +99,9 @@ frontend/
 
 **AI features (Claude):** Three entry points in `backend/ai.js` — `analyzeIssue` (ticket triage with optional image base64 list), `generateContractorBrief` (tradesperson work order), `summarizeInspection` (room-by-room inspection summary). All functions fall back gracefully when `ANTHROPIC_API_KEY` is a dummy key.
 
-**File uploads:** Multipart uploads land at `POST /api/upload`; files go to AWS S3. `FileRef` model tracks file metadata. `fileUrl(path)` in `lib/api.js` constructs public URLs.
+**File uploads:** Multipart uploads land at `POST /api/upload`; files go to AWS S3 via `services/storage.js`. `FileRef` model tracks file metadata. `fileUrl(path)` in `lib/api.js` constructs public URLs. File size limit is 15 MB per file; request body limit is 20 MB.
+
+**Route prefixes:** Most routes register under `api/<domain>`. Exceptions: `uploads`, `contractors`, `admin`, and `public` routes are registered without an explicit prefix (their handlers define their own paths).
 
 **Healthy Homes compliance:** Five areas defined in `constants.js` (`heating`, `insulation`, `ventilation`, `moisture`, `draught_stopping`). One `Compliance` document per area per property. Seeded automatically on first boot.
 

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow, StatusBadge } from "../components/Common";
-import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash, PencilSimple, Printer } from "@phosphor-icons/react";
+import { ArrowLeft, Thermometer, Drop, Wind, ShieldCheck, Upload, ClipboardText, User, X, Trash, PencilSimple, Printer, FilePdf, Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PropertyIntelligence from "../components/PropertyIntelligence";
 
@@ -180,6 +180,11 @@ export default function PropertyDetail() {
             <Eyebrow>Property file</Eyebrow>
             <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-2" data-testid="property-detail-title">{property.address}</h1>
             <div className="text-slate-600">{property.suburb}, {property.city} · {property.bedrooms} bed · {property.bathrooms} bath</div>
+            {property.notes && (
+              <div className="mt-2 text-sm text-slate-600 bg-amber-50 border border-amber-200 px-3 py-2 max-w-xl leading-relaxed">
+                {property.notes}
+              </div>
+            )}
             {(currentUser?.role === "property_manager" || currentUser?.role === "landlord") && (
               <button
                 onClick={() => setEditOpen((v) => !v)}
@@ -384,9 +389,17 @@ export default function PropertyDetail() {
                     {it.evidence_paths?.length ? (
                       <div className="flex flex-wrap gap-1.5">
                         {it.evidence_paths.map((p) => (
-                          <a key={p} href={fileUrl(p)} target="_blank" rel="noreferrer">
-                            <img src={fileUrl(p)} alt="" className="w-10 h-10 object-cover border border-slate-200" />
-                          </a>
+                          p.toLowerCase().endsWith(".pdf") ? (
+                            <a key={p} href={fileUrl(p)} target="_blank" rel="noreferrer" title="Open PDF">
+                              <div className="w-10 h-10 border border-slate-200 bg-slate-50 flex items-center justify-center text-[#004B87] hover:bg-slate-100">
+                                <FilePdf size={18} weight="duotone" />
+                              </div>
+                            </a>
+                          ) : (
+                            <a key={p} href={fileUrl(p)} target="_blank" rel="noreferrer">
+                              <img src={fileUrl(p)} alt="" className="w-10 h-10 object-cover border border-slate-200" />
+                            </a>
+                          )
                         ))}
                       </div>
                     ) : (
@@ -405,7 +418,15 @@ export default function PropertyDetail() {
 
         {/* Recent tickets */}
         <div>
-          <h2 className="font-display text-xl font-bold mb-4">Recent tickets</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-bold">Recent tickets</h2>
+            <Link
+              to={`/report?property_id=${id}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#FF5722] border border-[#FF5722] px-3 py-1.5 hover:bg-[#FF5722] hover:text-white transition-colors"
+            >
+              <Plus size={12} weight="bold" /> Create ticket
+            </Link>
+          </div>
           {tickets.length === 0 ? (
             <div className="bg-white border border-slate-200 p-6 text-sm text-slate-500">No tickets for this property.</div>
           ) : (

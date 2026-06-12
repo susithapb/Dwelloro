@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { apiClient, fileUrl, useAuth } from "../lib/api";
 import { Eyebrow } from "../components/Common";
@@ -9,9 +9,10 @@ import { Upload, Sparkle, X } from "@phosphor-icons/react";
 export default function ReportIssue() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
   const [form, setForm] = useState({
-    property_id: "",
+    property_id: searchParams.get("property_id") || "",
     title: "",
     description: "",
     urgency: "medium",
@@ -25,7 +26,10 @@ export default function ReportIssue() {
   useEffect(() => {
     apiClient.get("/properties").then(({ data }) => {
       setProperties(data);
-      if (data.length === 1) setForm((f) => ({ ...f, property_id: data[0].id }));
+      const prefill = searchParams.get("property_id");
+      if (!prefill && data.length === 1) {
+        setForm((f) => ({ ...f, property_id: data[0].id }));
+      }
     });
   }, []);
 

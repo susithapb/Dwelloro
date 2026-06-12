@@ -21,6 +21,7 @@ export default function Tickets() {
   const [search, setSearch] = useState("");
   const [filterProperty, setFilterProperty] = useState("");
   const [filterUrgency, setFilterUrgency] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -40,15 +41,18 @@ export default function Tickets() {
 
   const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
 
-  const hasFilters = search || filterProperty || filterUrgency;
+  const categories = [...new Set(tickets.map((t) => t.category).filter(Boolean))].sort();
+
+  const hasFilters = search || filterProperty || filterUrgency || filterCategory;
   const filteredTickets = tickets.filter((t) => {
     if (filterProperty && t.property_id !== filterProperty) return false;
     if (filterUrgency && t.urgency !== filterUrgency) return false;
+    if (filterCategory && t.category !== filterCategory) return false;
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const clearFilters = () => { setSearch(""); setFilterProperty(""); setFilterUrgency(""); };
+  const clearFilters = () => { setSearch(""); setFilterProperty(""); setFilterUrgency(""); setFilterCategory(""); };
 
   return (
     <AppShell>
@@ -92,6 +96,19 @@ export default function Tickets() {
               <option value="high">High</option>
               <option value="critical">Critical</option>
             </select>
+            {categories.length > 0 && (
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87]"
+                data-testid="tickets-filter-category"
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
             {hasFilters && (
               <button onClick={clearFilters} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 px-2 py-2 border border-slate-200 hover:bg-slate-50">
                 <X size={12} weight="bold" /> Clear

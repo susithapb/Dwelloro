@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AppShell from "../components/AppShell";
 import { apiClient, useAuth } from "../lib/api";
 import { Eyebrow } from "../components/Common";
-import { User, Lock, ArrowRight, Wrench } from "@phosphor-icons/react";
+import { User, Lock, ArrowRight, Wrench, Warning } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -28,13 +28,17 @@ const TRADES = [
 ];
 
 export default function Settings() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
 
   const [profile, setProfile] = useState({ full_name: "", email: "", phone: "", trade: "" });
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [passwords, setPasswords] = useState({ current_password: "", new_password: "", confirm: "" });
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -60,6 +64,21 @@ export default function Settings() {
       toast.error(err?.response?.data?.detail || "Failed to save profile");
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const onDeleteAccount = async (e) => {
+    e.preventDefault();
+    setDeletingAccount(true);
+    try {
+      await apiClient.delete("/auth/me", { data: { password: deletePassword } });
+      toast.success("Account deleted");
+      logout();
+      window.location.href = "/login";
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to delete account");
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -240,7 +259,7 @@ export default function Settings() {
 
         {/* Plan shortcut — property owners only (PM + self-managing landlord) */}
         {(user?.role === "property_manager" || user?.role === "landlord") && (
-          <section className="bg-white border border-slate-200">
+          <section className="bg-white border border-slate-200 mb-6">
             <div className="px-6 py-4 border-b border-slate-200">
               <h2 className="font-display font-bold text-lg">Plan & billing</h2>
             </div>
@@ -258,6 +277,61 @@ export default function Settings() {
             </div>
           </section>
         )}
+
+        {/* Danger zone */}
+        <section className="bg-white border border-red-200">
+          <div className="px-6 py-4 border-b border-red-200 flex items-center gap-2">
+            <Warning size={18} weight="bold" className="text-red-600" />
+            <h2 className="font-display font-bold text-lg text-red-700">Danger zone</h2>
+          </div>
+          <div className="p-6">
+            {!showDeleteConfirm ? (
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <div className="font-semibold text-sm">Delete account</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Permanently removes your account and all data. This cannot be undone.</div>
+                </div>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 border border-red-400 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors"
+                >
+                  Delete account
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={onDeleteAccount} className="space-y-4">
+                <div className="text-sm text-red-700 font-semibold">This will permanently delete your account. Enter your password to confirm.</div>
+                <div>
+                  <label className="label-eyebrow block mb-2">Confirm your password</label>
+                  <input
+                    required
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="w-full border border-red-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-400 max-w-sm"
+                    placeholder="Your current password"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={deletingAccount}
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-semibold"
+                  >
+                    {deletingAccount ? "Deleting…" : "Confirm delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowDeleteConfirm(false); setDeletePassword(""); }}
+                    className="px-5 py-2.5 border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </section>
       </div>
     </AppShell>
   );

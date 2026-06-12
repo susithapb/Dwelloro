@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiClient, fileUrl } from "../lib/api";
-import { ArrowLeft, Printer } from "@phosphor-icons/react";
+import { ArrowLeft, Printer, FilePdf } from "@phosphor-icons/react";
 
 const AREA_LABELS = {
   heating: "Heating",
@@ -118,7 +118,16 @@ export default function ComplianceReport() {
                     <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Evidence ({item.evidence_paths.length})</div>
                     <div className="flex flex-wrap gap-2">
                       {item.evidence_paths.map((p) => (
-                        <img key={p} src={fileUrl(p)} alt="" className="w-20 h-20 object-cover border border-slate-200" />
+                        p.toLowerCase().endsWith(".pdf") ? (
+                          <a key={p} href={fileUrl(p)} target="_blank" rel="noreferrer" title="Open PDF" className="flex flex-col items-center gap-1">
+                            <div className="w-20 h-20 border border-slate-200 bg-slate-50 flex items-center justify-center text-[#004B87]">
+                              <FilePdf size={28} weight="duotone" />
+                            </div>
+                            <span className="text-[10px] text-slate-500">PDF</span>
+                          </a>
+                        ) : (
+                          <img key={p} src={fileUrl(p)} alt="" className="w-20 h-20 object-cover border border-slate-200" />
+                        )
                       ))}
                     </div>
                   </div>

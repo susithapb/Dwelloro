@@ -132,4 +132,16 @@ export default async function authRoutes(app) {
     await user.save();
     return { detail: 'Password updated successfully' };
   });
+
+  app.delete('/me', { preHandler: authenticate }, async (req, reply) => {
+    const { password } = req.body || {};
+    if (!password) return reply.code(400).send({ detail: 'Password is required to delete your account' });
+    const user = await User.findOne({ id: req.user.sub });
+    if (!user) return reply.code(404).send({ detail: 'User not found' });
+    if (!bcrypt.compareSync(password, user.password_hash)) {
+      return reply.code(400).send({ detail: 'Password is incorrect' });
+    }
+    await User.deleteOne({ id: req.user.sub });
+    return { detail: 'Account deleted' };
+  });
 }
