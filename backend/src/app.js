@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import env from './config/env.js';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 
@@ -20,7 +21,10 @@ import adminRoutes from './routes/admin.js';
 export async function buildApp() {
   const app = Fastify({ logger: false, bodyLimit: 20 * 1024 * 1024 });
 
-  await app.register(cors, { origin: true, credentials: true });
+  await app.register(cors, {
+    origin: env.APP_PUBLIC_URL || 'http://localhost:3000',
+    credentials: true,
+  });
   await app.register(multipart, { limits: { fileSize: 15 * 1024 * 1024 } });
   await app.register(rateLimit, {
     global: false,

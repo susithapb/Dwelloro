@@ -77,7 +77,16 @@ export default async function propertyRoutes(app) {
       );
       if (err) return reply.code(400).send({ detail: err });
       const idField = isLandlord ? "landlord_id" : "manager_id";
-      const p = await Property.create({ ...b, [idField]: req.user.sub });
+      const p = await Property.create({
+        address: b.address,
+        suburb: b.suburb,
+        city: b.city,
+        postcode: b.postcode,
+        bedrooms: b.bedrooms,
+        bathrooms: b.bathrooms,
+        notes: b.notes,
+        [idField]: req.user.sub,
+      });
       for (const area of COMPLIANCE_AREAS)
         await Compliance.create({ property_id: p.id, area });
       return strip(p);
@@ -147,7 +156,7 @@ export default async function propertyRoutes(app) {
     "/:id/share",
     { preHandler: requireRoles("property_manager", "landlord") },
     async (req, reply) => {
-      const property = await Property.findOne({ id: req.params.id });
+      const property = await Property.findOne(ownerQuery(req.user, req.params.id));
       if (!property)
         return reply.code(404).send({ detail: "Property not found" });
       const token = jwt.sign(

@@ -1,5 +1,6 @@
 import Property from '../models/Property.js';
 import Ticket from '../models/Ticket.js';
+import Inspection from '../models/Inspection.js';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { requireRoles } from '../middleware/requireRoles.js';
@@ -9,25 +10,71 @@ import { notifyContractorAssigned, notifyTicketStatusUpdate, notifyQuoteSubmitte
 import { strip, now } from '../utils/helpers.js';
 import { collect, required } from '../utils/validate.js';
 
+// Fetch ticket and verify the caller is authorized to access it.
+// Returns the ticket on success, or sends 404/403 and returns null.
+async function resolveTicketAccess(req, reply, ticketId) {
+  const ticket = await Ticket.findOne({ id: ticketId });
+  if (!ticket) { reply.code(404).send({ detail: 'Ticket not found' }); return null; }
+  const { role, sub } = req.user;
+  let allowed = false;
+  if (role === 'contractor') allowed = ticket.assigned_contractor_id === sub;
+  else if (role === 'tenant') allowed = ticket.reporter_id === sub;
+  else {
+    const property = await Property.findOne({ id: ticket.property_id });
+    if (role === 'property_manager') allowed = property?.manager_id === sub;
+    else if (role === 'landlord') allowed = property?.landlord_id === sub;
+    else if (role === 'inspector') {
+      allowed = !!(await Inspection.exists({ property_id: ticket.property_id, inspector_id: sub }));
+    }
+  }
+  if (!allowed) { reply.code(403).send({ detail: 'Forbidden' }); return null; }
+  return ticket;
+}
+
 export default async function ticketRoutes(app) {
+  // List — each role scoped to tickets they can legitimately see
   app.get('/', { preHandler: authenticate }, async (req) => {
     const { role, sub } = req.user;
     const query = {};
     if (req.query.status) query.status = req.query.status;
-    if (req.query.property_id) query.property_id = req.query.property_id;
-    if (role === 'tenant') query.reporter_id = sub;
-    else if (role === 'contractor') query.assigned_contractor_id = sub;
-    if (req.query.assigned_contractor_id && ['property_manager', 'admin', 'landlord', 'inspector'].includes(role)) {
-      query.assigned_contractor_id = req.query.assigned_contractor_id;
-    }
-    else if (role === 'landlord') {
+
+    if (role === 'tenant') {
+      query.reporter_id = sub;
+    } else if (role === 'contractor') {
+      query.assigned_contractor_id = sub;
+    } else if (role === 'landlord') {
       const props = await Property.find({ landlord_id: sub }, { id: 1 });
-      query.property_id = { $in: props.map((p) => p.id) };
+      const ids = props.map((p) => p.id);
+      if (req.query.property_id) {
+        if (!ids.includes(req.query.property_id)) return [];
+        query.property_id = req.query.property_id;
+      } else {
+        query.property_id = { $in: ids };
+      }
+      if (req.query.assigned_contractor_id) query.assigned_contractor_id = req.query.assigned_contractor_id;
+    } else if (role === 'property_manager') {
+      const props = await Property.find({ manager_id: sub }, { id: 1 });
+      const ids = props.map((p) => p.id);
+      if (req.query.property_id) {
+        if (!ids.includes(req.query.property_id)) return [];
+        query.property_id = req.query.property_id;
+      } else {
+        query.property_id = { $in: ids };
+      }
+      if (req.query.assigned_contractor_id) query.assigned_contractor_id = req.query.assigned_contractor_id;
+    } else if (role === 'inspector') {
+      const assignments = await Inspection.find({ inspector_id: sub }, { property_id: 1 });
+      const ids = [...new Set(assignments.map((i) => i.property_id))];
+      query.property_id = { $in: ids };
+    } else {
+      return [];
     }
+
     const items = await Ticket.find(query).sort({ created_at: -1 }).limit(500);
     return items.map(strip);
   });
 
+  // Create — reporter must be associated with the property
   app.post('/', { preHandler: authenticate }, async (req, reply) => {
     const body = req.body || {};
     const err = collect(
@@ -36,18 +83,31 @@ export default async function ticketRoutes(app) {
       required(body.description, 'description'),
     );
     if (err) return reply.code(400).send({ detail: err });
+
+    const { role, sub } = req.user;
+    if (role === 'contractor') return reply.code(403).send({ detail: 'Forbidden' });
+
     const property = await Property.findOne({ id: body.property_id });
     if (!property) return reply.code(404).send({ detail: 'Property not found' });
 
+    let canCreate = false;
+    if (role === 'property_manager') canCreate = property.manager_id === sub;
+    else if (role === 'landlord') canCreate = property.landlord_id === sub;
+    else if (role === 'tenant') canCreate = property.tenant_id === sub;
+    else if (role === 'inspector') {
+      canCreate = !!(await Inspection.exists({ property_id: body.property_id, inspector_id: sub }));
+    }
+    if (!canCreate) return reply.code(403).send({ detail: 'Forbidden' });
+
     const ticket = await Ticket.create({
       property_id: body.property_id,
-      reporter_id: req.user.sub,
+      reporter_id: sub,
       title: body.title,
       description: body.description,
       category: body.category || '',
       urgency: body.urgency || 'medium',
       photo_paths: body.photo_paths || [],
-      timeline: [{ at: now(), by: req.user.sub, event: 'created', note: 'Ticket created' }],
+      timeline: [{ at: now(), by: sub, event: 'created', note: 'Ticket created' }],
     });
 
     recomputeRiskScore(body.property_id).catch(() => {});
@@ -55,14 +115,14 @@ export default async function ticketRoutes(app) {
   });
 
   app.get('/:id', { preHandler: authenticate }, async (req, reply) => {
-    const ticket = await Ticket.findOne({ id: req.params.id });
-    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    const ticket = await resolveTicketAccess(req, reply, req.params.id);
+    if (!ticket) return;
     return strip(ticket);
   });
 
   app.patch('/:id', { preHandler: authenticate }, async (req, reply) => {
-    const ticket = await Ticket.findOne({ id: req.params.id });
-    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    const ticket = await resolveTicketAccess(req, reply, req.params.id);
+    if (!ticket) return;
 
     const body = req.body || {};
     const oldStatus = ticket.status;
@@ -98,6 +158,7 @@ export default async function ticketRoutes(app) {
     return strip(ticket);
   });
 
+  // Contractor submits quote — already checks assigned_contractor_id
   app.post('/:id/quote', { preHandler: requireRoles('contractor') }, async (req, reply) => {
     const ticket = await Ticket.findOne({ id: req.params.id });
     if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
@@ -144,8 +205,8 @@ export default async function ticketRoutes(app) {
   });
 
   app.post('/:id/quote/approve', { preHandler: requireRoles('property_manager', 'landlord') }, async (req, reply) => {
-    const ticket = await Ticket.findOne({ id: req.params.id });
-    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    const ticket = await resolveTicketAccess(req, reply, req.params.id);
+    if (!ticket) return;
     if (ticket.status !== 'awaiting_quote') {
       return reply.code(400).send({ detail: 'No pending quote to approve' });
     }
@@ -177,8 +238,8 @@ export default async function ticketRoutes(app) {
   });
 
   app.post('/:id/quote/reject', { preHandler: requireRoles('property_manager', 'landlord') }, async (req, reply) => {
-    const ticket = await Ticket.findOne({ id: req.params.id });
-    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    const ticket = await resolveTicketAccess(req, reply, req.params.id);
+    if (!ticket) return;
     if (ticket.status !== 'awaiting_quote') {
       return reply.code(400).send({ detail: 'No pending quote to reject' });
     }
@@ -207,14 +268,11 @@ export default async function ticketRoutes(app) {
   });
 
   app.post('/:id/brief', { preHandler: authenticate }, async (req, reply) => {
-    const ticket = await Ticket.findOne({ id: req.params.id });
-    if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+    const ticket = await resolveTicketAccess(req, reply, req.params.id);
+    if (!ticket) return;
     const property = await Property.findOne({ id: ticket.property_id });
     try {
-      const brief = await generateContractorBrief(
-        strip(ticket),
-        property ? strip(property) : {},
-      );
+      const brief = await generateContractorBrief(strip(ticket), property ? strip(property) : {});
       ticket.contractor_brief = brief;
       ticket.updated_at = now();
       await ticket.save();
@@ -228,13 +286,10 @@ export default async function ticketRoutes(app) {
     '/:id/assign',
     { preHandler: requireRoles('property_manager', 'inspector') },
     async (req, reply) => {
-      const ticket = await Ticket.findOne({ id: req.params.id });
-      if (!ticket) return reply.code(404).send({ detail: 'Ticket not found' });
+      const ticket = await resolveTicketAccess(req, reply, req.params.id);
+      if (!ticket) return;
 
-      const contractor = await User.findOne({
-        id: req.body?.contractor_id,
-        role: 'contractor',
-      });
+      const contractor = await User.findOne({ id: req.body?.contractor_id, role: 'contractor' });
       if (!contractor) return reply.code(404).send({ detail: 'Contractor not found' });
 
       const event = {

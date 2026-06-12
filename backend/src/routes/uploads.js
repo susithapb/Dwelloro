@@ -1,6 +1,10 @@
 import { v4 as uuid } from "uuid";
 import jwt from "jsonwebtoken";
 import FileRef from "../models/FileRef.js";
+import Ticket from "../models/Ticket.js";
+import Inspection from "../models/Inspection.js";
+import Compliance from "../models/Compliance.js";
+import Property from "../models/Property.js";
 import { authenticate } from "../middleware/auth.js";
 import { putObject, getObject } from "../services/storage.js";
 import { strip } from "../utils/helpers.js";
@@ -73,17 +77,38 @@ export default async function uploadRoutes(app) {
         req.headers.authorization?.replace(/^Bearer /, "") || req.query.auth;
 
       if (!token) return reply.code(401).send({ detail: "Missing auth" });
+      let decoded;
       try {
-        jwt.verify(token, env.JWT_SECRET);
+        decoded = jwt.verify(token, env.JWT_SECRET);
       } catch {
         return reply.code(401).send({ detail: "Invalid token" });
       }
 
-      const record = await FileRef.findOne({
-        storage_path: path,
-        is_deleted: false,
-      });
+      const record = await FileRef.findOne({ storage_path: path, is_deleted: false });
       if (!record) return reply.code(404).send({ detail: "File not found" });
+
+      // Caller must own the file OR be authorized via an entity that references it
+      if (record.owner_id !== decoded.sub) {
+        const { role, sub } = decoded;
+        const [ticket, inspection, compliance] = await Promise.all([
+          Ticket.findOne({ photo_paths: path }, { property_id: 1, reporter_id: 1, assigned_contractor_id: 1 }),
+          Inspection.findOne({ 'rooms.photo_paths': path }, { property_id: 1, inspector_id: 1 }),
+          Compliance.findOne({ evidence_paths: path }, { property_id: 1 }),
+        ]);
+        const propertyId = ticket?.property_id ?? inspection?.property_id ?? compliance?.property_id;
+        if (!propertyId) return reply.code(403).send({ detail: "Forbidden" });
+        const property = await Property.findOne({ id: propertyId });
+        let canAccess = false;
+        if (role === 'property_manager') canAccess = property?.manager_id === sub;
+        else if (role === 'landlord') canAccess = property?.landlord_id === sub;
+        else if (role === 'tenant') canAccess = property?.tenant_id === sub;
+        else if (role === 'contractor') canAccess = ticket?.assigned_contractor_id === sub;
+        else if (role === 'inspector') {
+          canAccess = inspection?.inspector_id === sub ||
+            !!(await Inspection.exists({ property_id: propertyId, inspector_id: sub }));
+        }
+        if (!canAccess) return reply.code(403).send({ detail: "Forbidden" });
+      }
 
       const { data, contentType } = await getObject(path);
       reply

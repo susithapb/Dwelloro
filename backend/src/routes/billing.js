@@ -7,12 +7,12 @@ import { authenticate } from "../middleware/auth.js";
 import User from "../models/User.js";
 import { planLimitFor } from "../utils/helpers.js";
 import Property from "../models/Property.js";
+import env from "../config/env.js";
 
 const STRIPE_API_KEY =
   process.env.STRIPE_API_KEY || "sk_test_DUMMY-KEY-REPLACE-ME";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
-const JWT_SECRET =
-  process.env.JWT_SECRET || "local-dev-secret-change-me-in-production";
+const JWT_SECRET = env.JWT_SECRET;
 
 const stripe = new Stripe(STRIPE_API_KEY, { apiVersion: "2024-12-18.acacia" });
 
