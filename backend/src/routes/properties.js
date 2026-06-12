@@ -16,7 +16,7 @@ function allowedForProperty(user, property) {
   if (user.role === "property_manager") return property.manager_id === user.sub;
   if (user.role === "landlord") return property.landlord_id === user.sub;
   if (user.role === "tenant") return property.tenant_id === user.sub;
-  if (user.role === "inspector") return true;
+  // Inspector access to a specific property is checked via assignment at the route level
   return false;
 }
 
@@ -34,6 +34,12 @@ export default async function propertyRoutes(app) {
     if (role === "tenant") query.tenant_id = sub;
     else if (role === "landlord") query.landlord_id = sub;
     else if (role === "property_manager") query.manager_id = sub;
+    else if (role === "inspector") {
+      // Inspectors see only properties where they have an assigned inspection
+      const assignments = await Inspection.find({ inspector_id: sub }, { property_id: 1 });
+      const propertyIds = [...new Set(assignments.map((i) => i.property_id))];
+      query.id = { $in: propertyIds };
+    }
     const items = await Property.find(query)
       .sort({ created_at: -1 })
       .limit(500);
@@ -82,9 +88,17 @@ export default async function propertyRoutes(app) {
     const property = await Property.findOne({ id: req.params.id });
     if (!property)
       return reply.code(404).send({ detail: "Property not found" });
-    if (!allowedForProperty(req.user, property)) {
+
+    if (req.user.role === "inspector") {
+      const assigned = await Inspection.exists({
+        property_id: req.params.id,
+        inspector_id: req.user.sub,
+      });
+      if (!assigned) return reply.code(403).send({ detail: "Forbidden" });
+    } else if (!allowedForProperty(req.user, property)) {
       return reply.code(403).send({ detail: "Forbidden" });
     }
+
     return strip(property);
   });
 

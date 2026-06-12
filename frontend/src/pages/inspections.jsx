@@ -16,6 +16,9 @@ export default function Inspections() {
   const [newScheduledAt, setNewScheduledAt] = useState("");
   const [creating, setCreating] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
+  const [filterProperty, setFilterProperty] = useState("");
+  const [inspectors, setInspectors] = useState([]);
+  const [assignInspectorId, setAssignInspectorId] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -28,6 +31,9 @@ export default function Inspections() {
       setProperties(pr || []);
     } finally {
       setLoading(false);
+    }
+    if (user?.role === 'property_manager') {
+      apiClient.get("/inspections/inspectors").then(({ data }) => setInspectors(data)).catch(() => {});
     }
   };
 
@@ -42,6 +48,7 @@ export default function Inspections() {
     try {
       const payload = { property_id: newPropId };
       if (newScheduledAt) payload.scheduled_at = newScheduledAt;
+      if (assignInspectorId) payload.inspector_id = assignInspectorId;
       const { data } = await apiClient.post("/inspections", payload);
       toast.success("Inspection created");
       setShowNew(false);
@@ -56,7 +63,14 @@ export default function Inspections() {
   };
 
   const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
-  const filtered = statusFilter ? inspections.filter((i) => i.status === statusFilter) : inspections;
+
+  const isOverdue = (i) => i.status === 'scheduled' && i.scheduled_at && new Date(i.scheduled_at) < new Date();
+
+  const filtered = inspections.filter((i) => {
+    if (statusFilter && i.status !== statusFilter) return false;
+    if (filterProperty && i.property_id !== filterProperty) return false;
+    return true;
+  });
 
   return (
     <AppShell>
@@ -106,6 +120,22 @@ export default function Inspections() {
                 className="border border-slate-300 px-4 py-2.5"
               />
             </div>
+            {inspectors.length > 0 && (
+              <div>
+                <div className="label-eyebrow mb-2">Assign inspector <span className="text-slate-400 normal-case font-normal">(optional)</span></div>
+                <select
+                  value={assignInspectorId}
+                  onChange={(e) => setAssignInspectorId(e.target.value)}
+                  data-testid="new-inspection-inspector"
+                  className="border border-slate-300 px-4 py-2.5"
+                >
+                  <option value="">Self / unassigned</option>
+                  {inspectors.map((i) => (
+                    <option key={i.id} value={i.id}>{i.full_name || i.email}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button
               type="submit"
               disabled={creating}
@@ -118,7 +148,7 @@ export default function Inspections() {
         )}
 
         {inspections.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap gap-2">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -130,6 +160,19 @@ export default function Inspections() {
               <option value="in_progress">In progress</option>
               <option value="completed">Completed</option>
             </select>
+            {properties.length > 1 && (
+              <select
+                value={filterProperty}
+                onChange={(e) => setFilterProperty(e.target.value)}
+                data-testid="inspection-property-filter"
+                className="border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#004B87] bg-white"
+              >
+                <option value="">All properties</option>
+                {properties.map((p) => (
+                  <option key={p.id} value={p.id}>{p.address}</option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 
@@ -176,8 +219,15 @@ export default function Inspections() {
                         </Link>
                         {p && <div className="text-xs text-slate-500">{p.suburb}, {p.city}</div>}
                       </td>
-                      <td className="px-5 py-3 font-mono text-xs text-slate-600">
-                        {i.scheduled_at ? new Date(i.scheduled_at).toLocaleDateString() : <span className="text-slate-400">—</span>}
+                      <td className="px-5 py-3 font-mono text-xs">
+                        {i.scheduled_at ? (
+                          <span className={isOverdue(i) ? "text-red-600" : "text-slate-600"}>
+                            {new Date(i.scheduled_at).toLocaleDateString()}
+                            {isOverdue(i) && (
+                              <span className="ml-2 text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 border border-red-300 px-1.5 py-0.5">Overdue</span>
+                            )}
+                          </span>
+                        ) : <span className="text-slate-400">—</span>}
                       </td>
                       <td className="px-5 py-3 font-mono">{i.rooms?.length || 0}</td>
                       <td className="px-5 py-3"><StatusBadge status={i.status === "in_progress" ? "in_progress" : i.status === "completed" ? "completed" : "open"}>{i.status.replace("_", " ")}</StatusBadge></td>

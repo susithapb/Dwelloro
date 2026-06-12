@@ -13,9 +13,9 @@ export default function ReportIssue() {
   const [properties, setProperties] = useState([]);
   const [form, setForm] = useState({
     property_id: searchParams.get("property_id") || "",
-    title: "",
-    description: "",
-    urgency: "medium",
+    title: searchParams.get("title") || "",
+    description: searchParams.get("description") || "",
+    urgency: searchParams.get("urgency") || "medium",
   });
   const [photoPaths, setPhotoPaths] = useState([]);
   const [uploading, setUploading] = useState(false);
